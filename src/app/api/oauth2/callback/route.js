@@ -1,26 +1,12 @@
+import { prisma } from "@/lib/prisma";
+import { auth } from "@clerk/nextjs/server";
 import { google } from "googleapis";
-import fs from "fs";
-import path from "path";
-
-// Path for credentials file and token storage
-const CREDENTIALS_PATH = path.join(process.cwd(), "credentials.json");
-const TOKEN_PATH = path.join(process.cwd(), "token.json");
-
-// Read credentials from file
-const credentials = JSON.parse(fs.readFileSync(CREDENTIALS_PATH, "utf-8"));
-const { client_id, client_secret, redirect_uris } = credentials.web;
-
-// Create OAuth2 client instance
-const oAuth2Client = new google.auth.OAuth2(
-  client_id,
-  client_secret,
-  redirect_uris[0]
-);
 
 export async function GET(req) {
   try {
     const url = new URL(req.url);
     const code = url.searchParams.get("code");
+    const { userId } = auth();
 
     if (!code) {
       return new Response(
@@ -29,18 +15,38 @@ export async function GET(req) {
       );
     }
 
-    // Exchange authorization code for tokens
+    const user = await prisma.user.findUnique({ where: { clerkId: userId } });
+
+    if (!user || !user.credentialsPath) {
+      return new Response(JSON.stringify({ error: "Credentials not found" }), {
+        status: 400,
+      });
+    }
+
+    // Parse the credentials directly from the database
+    const credentials = JSON.parse(user.credentialsPath);
+
+    const { client_id, client_secret, redirect_uris } = credentials.web;
+
+    // Create OAuth2 client with the credentials
+    const oAuth2Client = new google.auth.OAuth2(
+      client_id,
+      client_secret,
+      redirect_uris[0]
+    );
+
+    // Exchange the authorization code for access tokens
     const { tokens } = await oAuth2Client.getToken(code);
 
-    // Save tokens to a file
-    fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokens));
+    // Update the user's token in the database
+    await prisma.user.update({
+      where: { clerkId: userId },
+      data: { tokenPath: JSON.stringify(tokens) },
+    });
 
-    // Redirect to home page
     return new Response(null, {
       status: 302,
-      headers: {
-        Location: "/",
-      },
+      headers: { Location: "/" },
     });
   } catch (error) {
     console.error("Error during authorization:", error);

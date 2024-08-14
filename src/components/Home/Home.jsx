@@ -1,19 +1,31 @@
 "use client";
 import { Button } from "@mui/material";
 import { useEffect, useState } from "react";
+import { useUser } from "@clerk/nextjs";
 
 // Component for Uploading Credentials and Authorizing
 function AuthorizationForm() {
+  const { user } = useUser(); // Ensure `useUser` correctly provides user data
   const [file, setFile] = useState(null);
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
   };
 
   const handleUploadCredentials = async () => {
+    if (!file || !user) {
+      setMessage("Please select a file and ensure you are logged in.");
+      return;
+    }
+
+    setLoading(true);
+    setMessage(""); // Clear previous messages
+
     const formData = new FormData();
     formData.append("credentials", file);
+    formData.append("userId", user.id); // Ensure user.id is correct
 
     try {
       const response = await fetch("/api/upload-credentials", {
@@ -21,11 +33,17 @@ function AuthorizationForm() {
         body: formData,
       });
 
+      if (!response.ok) {
+        throw new Error("Failed to upload credentials");
+      }
+
       const result = await response.json();
-      setMessage(result.message || "Error uploading credentials");
+      setMessage(result.message || "Credentials uploaded successfully");
     } catch (error) {
       console.error("Error uploading credentials:", error);
-      setMessage("Error uploading credentials");
+      setMessage("Error uploading credentials: " + error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -33,8 +51,12 @@ function AuthorizationForm() {
     <div>
       <h1>Upload Credentials and Authorize</h1>
       <input type="file" onChange={handleFileChange} />
-      <Button onClick={handleUploadCredentials} variant="contained">
-        Upload Credentials
+      <Button
+        onClick={handleUploadCredentials}
+        variant="contained"
+        disabled={loading}
+      >
+        {loading ? "Uploading..." : "Upload Credentials"}
       </Button>
       <p>{message}</p>
       <a href="/api/oauth2/init">Authorize with Google</a>
@@ -49,12 +71,12 @@ function SendEmailForm() {
   const [html, setHtml] = useState("");
   const [attachments, setAttachments] = useState([]);
   const [sender, setSender] = useState("");
-  const [username, setUsername] = useState(null);
+  const [username, setUsername] = useState("");
   const [batchSize, setBatchSize] = useState(50);
   const [delayTime, setDelayTime] = useState(10); // Default 10 seconds
   const [message, setMessage] = useState("");
-
-  const getUsername = username?.name.split(".json")[0];
+  const [loading, setLoading] = useState(false);
+  const getUsername = username?.name?.split(".json")[0];
 
   // Fetch a random name every 3 seconds and update the sender field
   useEffect(() => {
@@ -63,8 +85,7 @@ function SendEmailForm() {
         const response = await fetch("https://randomuser.me/api/");
         const data = await response.json();
         const user = data.results[0];
-        const name = `${user.name.first} ${user.name.last}`;
-        return name;
+        return `${user.name.first} ${user.name.last}`;
       } catch (error) {
         console.error("Error fetching random name:", error);
         return "Unknown Sender";
@@ -85,6 +106,14 @@ function SendEmailForm() {
   };
 
   const handleSendEmail = async () => {
+    if (!email || !subject || !html) {
+      setMessage("Please fill out all required fields.");
+      return;
+    }
+
+    setLoading(true);
+    setMessage("");
+
     const formData = new FormData();
     formData.append("to", email);
     formData.append("subject", subject);
@@ -98,20 +127,32 @@ function SendEmailForm() {
       formData.append("attachments", attachment);
     });
 
-    const response = await fetch("/api/send-email", {
-      method: "POST",
-      body: formData,
-    });
+    try {
+      const response = await fetch("/api/send-email", {
+        method: "POST",
+        body: formData,
+      });
 
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let result = "";
+      if (!response.ok) {
+        throw new Error("Failed to send email");
+      }
 
-    let { value, done } = await reader.read();
-    while (!done) {
-      result += decoder.decode(value);
-      setMessage(result);
-      ({ value, done } = await reader.read());
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let result = "";
+
+      let { value, done } = await reader.read();
+      while (!done) {
+        result += decoder.decode(value);
+        ({ value, done } = await reader.read());
+      }
+
+      setMessage(result || "Email sent successfully");
+    } catch (error) {
+      console.error("Error sending email:", error);
+      setMessage("Error sending email: " + error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -155,8 +196,8 @@ function SendEmailForm() {
         value={delayTime}
         onChange={(e) => setDelayTime(parseInt(e.target.value, 10))}
       />
-      <Button onClick={handleSendEmail} variant="contained">
-        Send Email
+      <Button onClick={handleSendEmail} variant="contained" disabled={loading}>
+        {loading ? "Sending..." : "Send Email"}
       </Button>
       <pre>{message}</pre>
     </div>

@@ -1,9 +1,7 @@
+import { prisma } from "@/lib/prisma";
 import nodemailer from "nodemailer";
 import { google } from "googleapis";
-import fs from "fs/promises";
-import path from "path";
-
-const TOKEN_PATH = path.join(process.cwd(), "token.json");
+import { auth } from "@clerk/nextjs/server";
 
 export async function POST(req) {
   const encoder = new TextEncoder();
@@ -18,46 +16,65 @@ export async function POST(req) {
     async start(controller) {
       try {
         const formData = await req.formData();
+        const email = formData.get("to");
         const subject = formData.get("subject");
         const html = formData.get("html");
         const sender = formData.get("sender");
         const username = formData.get("username");
         const attachments = formData.getAll("attachments");
-        const batchSize = parseInt(formData.get("batchSize"), 10) || 50;
-        const delayTime = parseInt(formData.get("delayTime"), 10) || 10; // Default to 10 seconds
+        const randomNumber = Math.floor(Math.random() * 999999);
+        const batchSize = parseInt(formData.get("batchSize"));
+        const delayTime = parseInt(formData.get("delayTime")); // Default to 10 seconds
 
+        // Log received data for debugging
         console.log("Received Data:", {
+          email,
           subject,
           html,
           sender,
           username,
           attachments: attachments.map((file) => file.name),
+          randomNumber,
           batchSize,
           delayTime,
         });
 
-        if (!subject || !html || !sender || !username) {
-          controller.enqueue(
-            encoder.encode(
-              JSON.stringify({
-                error: "Missing required fields",
-              })
-            )
+        // Ensure email is defined and not empty
+        if (!email) {
+          return new Response(
+            JSON.stringify({ error: "Recipient email is required" }),
+            { status: 400 }
+          );
+        }
+
+        // Fetch user from the database
+        const { userId } = auth();
+        const user = await prisma.user.findUnique({
+          where: { clerkId: userId },
+        });
+
+        if (!user || !user.credentialsPath || !user.tokenPath) {
+          return new Response(
+            JSON.stringify({ error: "Credentials or token not found" }),
+            { status: 400 }
           );
           controller.close();
           return;
         }
 
-        const tempPath = path.join(process.cwd(), "credentials.json");
-        const credentials = JSON.parse(await fs.readFile(tempPath, "utf-8"));
+        // Directly parse the credentials from the database
+        const credentials = JSON.parse(user.credentialsPath);
         const { client_id, client_secret, redirect_uris } = credentials.web;
+
+        // Create OAuth2 client
         const oAuth2Client = new google.auth.OAuth2(
           client_id,
           client_secret,
           redirect_uris[0]
         );
 
-        const token = JSON.parse(await fs.readFile(TOKEN_PATH, "utf-8"));
+        // Set credentials and fetch access token
+        const token = JSON.parse(user.tokenPath);
         oAuth2Client.setCredentials(token);
 
         const accessToken = await oAuth2Client.getAccessToken();
@@ -83,7 +100,7 @@ export async function POST(req) {
           }))
         );
 
-        const emails = formData.get("to").split(","); // Assuming `to` contains a list of emails separated by commas
+        const emails = formData.get("to").split(",");
         for (let i = 0; i < emails.length; i++) {
           const currentEmail = emails[i];
 
