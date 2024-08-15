@@ -3,6 +3,7 @@ import { useUser } from "@clerk/nextjs";
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Home from "src/components/Home/Home";
+import Loader from "src/components/Loader/Loader";
 
 const HomePage = () => {
   const { user, isLoaded } = useUser();
@@ -30,9 +31,6 @@ const HomePage = () => {
             if (data.error) {
               throw new Error(data.error);
             }
-
-            console.log("User linked successfully:", data.user);
-            // Optionally handle successful response here, e.g., display a success message
           })
           .catch((error) => {
             console.error("Error linking user:", error);
@@ -45,7 +43,11 @@ const HomePage = () => {
   }, [user, isLoaded, router]);
 
   if (!isLoaded) {
-    return <div>Loading...</div>; // Show loading indicator while checking authentication
+    return (
+      <div>
+        <Loader />
+      </div>
+    ); // Show loading indicator while checking authentication
   }
 
   return (

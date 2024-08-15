@@ -24,7 +24,7 @@ const Navigation = () => {
   };
 
   return (
-    <div>
+    <div className="bg-[#0A123E]">
       <Box sx={{ flexGrow: 1 }}>
         <AppBar position="static">
           <Toolbar>

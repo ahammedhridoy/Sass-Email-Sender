@@ -13,7 +13,7 @@ export default function RootLayout({ children }) {
   return (
     <ClerkProvider>
       <html lang="en">
-        <body className=" bg-slate-800">
+        <body className=" bg-[var(--body-clr)]">
           <header>
             <Navigation />
           </header>

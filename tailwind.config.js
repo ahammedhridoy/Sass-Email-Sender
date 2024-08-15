@@ -12,19 +12,19 @@ module.exports = {
     container: {
       center: true,
       padding: "2rem",
-      screens: {
-        xm: "391px",
+    },
+    screens: {
+      xm: "391px",
 
-        sm: "431px",
+      sm: "431px",
 
-        md: "768px",
+      md: "768px",
 
-        lg: "1024px",
+      lg: "1024px",
 
-        xl: "1280px",
+      xl: "1280px",
 
-        xxl: "1530px",
-      },
+      xxl: "1530px",
     },
     extend: {
       backgroundImage: {
