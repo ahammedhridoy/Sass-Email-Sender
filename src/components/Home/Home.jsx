@@ -363,6 +363,37 @@ const Home = () => {
                 </div>
               </div>
 
+              {/* Random Email Header */}
+              <div className="">
+                <div className="my-2">
+                  <FormControlLabel
+                    control={<Checkbox />}
+                    label="Random Email Header"
+                    checked={emailHeader}
+                    onChange={(e) => setEmailHeader(e.target.checked)}
+                  />
+                </div>
+                <div className="w-full">
+                  <div className="mb-4">
+                    <p className="font-semibold">Random Email Header </p>
+                    <Button
+                      component="label"
+                      variant="contained"
+                      role={undefined}
+                      tabIndex={-1}
+                      startIcon={<CloudUploadIcon />}
+                      size="large"
+                    >
+                      Upload Text File
+                      <VisuallyHiddenInput
+                        type="file"
+                        onChange={handleTextFileChange}
+                      />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
               {/* Email List & Send Email */}
               <div className="flex flex-col gap-4 mt-5 lg:flex-row">
                 {/* Email List */}
@@ -380,36 +411,8 @@ const Home = () => {
                     onChange={(e) => setEmail(e.target.value)}
                   ></textarea>
                 </div>
-              </div>
-
-              {/* Send Email */}
-              <div className="my-2">
-                <FormControlLabel
-                  control={<Checkbox />}
-                  label="Random Email Header"
-                  checked={emailHeader}
-                  onChange={(e) => setEmailHeader(e.target.checked)}
-                />
-              </div>
-              <div className="w-full">
-                <div className="mb-4">
-                  <p className="font-semibold">Random Email Header </p>
-                  <Button
-                    component="label"
-                    variant="contained"
-                    role={undefined}
-                    tabIndex={-1}
-                    startIcon={<CloudUploadIcon />}
-                    size="large"
-                  >
-                    Upload Text File
-                    <VisuallyHiddenInput
-                      type="file"
-                      onChange={handleTextFileChange}
-                    />
-                  </Button>
-                </div>
-                <div>
+                {/* Send Email */}
+                <div className="w-full">
                   <p className="font-semibold">Text / HTML Content</p>
                   <textarea
                     name=""

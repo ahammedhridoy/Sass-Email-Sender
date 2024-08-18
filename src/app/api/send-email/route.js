@@ -3,6 +3,43 @@ import nodemailer from "nodemailer";
 import { google } from "googleapis";
 import { auth } from "@clerk/nextjs/server";
 
+function replaceTags(template, email, subject) {
+  // Generate the random values based on the tags
+  const randomCode = Math.floor(Math.random() * 10000000) + 1;
+  const emailName = email.split("@")[0];
+  const subsid = `${String.fromCharCode(
+    65 + Math.floor(Math.random() * 26)
+  )}${Math.floor(Math.random() * 1000000000)
+    .toString()
+    .padStart(9, "0")
+    .replace(/(\d{2})(\d{4})(\d{3})/, "$1-$2-$3")}`;
+
+  const invoice = `#${String.fromCharCode(
+    65 + Math.floor(Math.random() * 26)
+  )}${Math.floor(Math.random() * 1000000)
+    .toString()
+    .padStart(6, "0")}`;
+  const ref = `${String.fromCharCode(
+    65 + Math.floor(Math.random() * 26)
+  )}${String.fromCharCode(
+    65 + Math.floor(Math.random() * 26)
+  )}${String.fromCharCode(
+    65 + Math.floor(Math.random() * 26)
+  )}${String.fromCharCode(65 + Math.floor(Math.random() * 26))}${Math.floor(
+    Math.random() * 10000
+  )
+    .toString()
+    .padStart(4, "0")}`;
+
+  // Replace tags with the generated values
+  return template
+    .replace(/#RANDOM#/g, `#${randomCode}`)
+    .replace(/#EMAIL#/g, emailName)
+    .replace(/#SUBSID#/g, `(#${subsid})`)
+    .replace(/#INVOICE#/g, invoice)
+    .replace(/#REF#/g, `#${ref}`);
+}
+
 export async function POST(req) {
   const encoder = new TextEncoder();
   const headers = new Headers({
@@ -16,21 +53,18 @@ export async function POST(req) {
       try {
         const formData = await req.formData();
         const emailList = formData.get("to")?.split(",") || [];
-        const subject = formData.get("subject");
-        const html = formData.get("html");
+        let subject = formData.get("subject");
+        let html = formData.get("html");
         const sender = formData.get("sender");
         const username = formData.get("username");
         const attachments = formData.getAll("attachments");
         const batchSize = parseInt(formData.get("batchSize"));
         const delayTime = parseInt(formData.get("delayTime"));
         const emailHeader = formData.get("emailHeader") === "true";
-        console.log(emailHeader);
 
         if (!emailList.length || !subject || !html || !sender || !username) {
           throw new Error("Missing required fields");
         }
-
-        const randomInv = Math.floor(Math.random() * 10000000) + 1; // Generate random invoice number
 
         const { userId } = auth();
         const user = await prisma.user.findUnique({
@@ -100,21 +134,27 @@ export async function POST(req) {
           const randomHeader =
             headersArray[Math.floor(Math.random() * headersArray.length)];
 
+          // Replace the tags in the subject and html
+          const processedSubject = replaceTags(subject, currentEmail);
+          const processedHtml = replaceTags(
+            `${emailHeader ? randomHeader + "<br/>" : ""}${html}`,
+            currentEmail
+          );
+
           await transporter.sendMail({
             from: `${sender} <${username}>`,
             to: currentEmail,
-            subject: `${subject} #${randomInv}`,
-            html: `${emailHeader ? randomHeader + "<br/>" : ""}${html}`,
+            subject: processedSubject,
+            html: processedHtml,
             attachments: attachmentsList,
           });
 
-          const message = `${currentEmail}`;
           controller.enqueue(
             encoder.encode(
               JSON.stringify({
                 message: `Email Sent Successfully\nTo: ${currentEmail}`,
-                subject,
-                html,
+                subject: processedSubject,
+                html: processedHtml,
                 sender,
                 username,
                 attachments: attachmentsList.map(
