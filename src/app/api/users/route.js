@@ -24,6 +24,7 @@ export async function POST(req) {
           credentialsPath: "",
           tokenPath: "",
           username: "",
+          content: "",
         },
       });
     }

@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "generate": "npx prisma generate",
+    "push": "npx prisma db push"
   },
   "dependencies": {
     "@clerk/nextjs": "^5.3.1",

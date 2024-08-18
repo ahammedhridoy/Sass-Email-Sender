@@ -7,6 +7,7 @@ import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
 import { styled } from "@mui/material/styles";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import toast, { Toaster } from "react-hot-toast";
 
 const VisuallyHiddenInput = styled("input")({
   clip: "rect(0 0 0 0)",
@@ -38,6 +39,7 @@ const Home = () => {
   const [sendLoading, setSendLoading] = useState(false);
   const [sendMessage, setSendMessage] = useState("");
   const [random, setRandom] = useState(false);
+  const [emailHeader, setEmailHeader] = useState(false);
   // Sent Details
   const [mailResult, setMailResult] = useState([]);
 
@@ -48,15 +50,16 @@ const Home = () => {
   const handleUploadCredentials = async () => {
     if (!file || !user) {
       setMessage("Please select a file and ensure you are logged in.");
+      toast.error("Please select a file and ensure you are logged in.");
       return;
     }
 
     setLoading(true);
-    setMessage(""); // Clear previous messages
+    setMessage("");
 
     const formData = new FormData();
     formData.append("credentials", file);
-    formData.append("userId", user.id); // Ensure user.id is correct
+    formData.append("userId", user.id);
 
     try {
       const response = await fetch("/api/upload-credentials", {
@@ -69,10 +72,10 @@ const Home = () => {
       }
 
       const result = await response.json();
-      setMessage(result.message || "Credentials uploaded successfully");
+      toast.success(`Credentials uploaded successfully`);
     } catch (error) {
       console.error("Error uploading credentials:", error);
-      setMessage("Error uploading credentials: " + error.message);
+      toast.error("Error uploading credentials");
     } finally {
       setLoading(false);
     }
@@ -102,6 +105,37 @@ const Home = () => {
     // Clean up interval on component unmount
     return () => clearInterval(intervalId);
   }, [random]);
+
+  // Upload Text File
+  const handleTextFileChange = async (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const fileContent = e.target.result;
+
+        try {
+          const response = await fetch("/api/upload-text-file", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ fileContent }),
+          });
+
+          if (response.ok) {
+            console.log("File uploaded successfully");
+            toast.success("File uploaded successfully");
+          } else {
+            console.error("Error uploading file:", response.statusText);
+          }
+        } catch (error) {
+          console.error("Error uploading text file:", error);
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
 
   const handleAttachmentsChange = (e) => {
     setAttachments([...e.target.files]);
@@ -146,6 +180,7 @@ const Home = () => {
     formData.append("username", username);
     formData.append("batchSize", batchSize);
     formData.append("delayTime", delayTime);
+    formData.append("emailHeader", emailHeader);
 
     attachments.forEach((attachment) => {
       formData.append("attachments", attachment);
@@ -178,7 +213,7 @@ const Home = () => {
           try {
             const emailResult = JSON.parse(parts[i]);
             // Process each valid JSON part
-            setMailResult((prev) => [...prev, emailResult]); // Append to the existing state
+            setMailResult((prev) => [...prev, emailResult]);
           } catch (e) {
             console.error("Failed to parse JSON part:", parts[i], e);
           }
@@ -207,6 +242,7 @@ const Home = () => {
 
   return (
     <div className="container">
+      <Toaster position="top-center" reverseOrder={false} />
       <div className="flex flex-col w-full gap-4 my-5 lg:flex-row">
         {/* Left Side */}
         <div className="w-full basis-2/3">
@@ -344,9 +380,36 @@ const Home = () => {
                     onChange={(e) => setEmail(e.target.value)}
                   ></textarea>
                 </div>
+              </div>
 
-                {/* Send Email */}
-                <div className="w-full">
+              {/* Send Email */}
+              <div className="my-2">
+                <FormControlLabel
+                  control={<Checkbox />}
+                  label="Random Email Header"
+                  checked={emailHeader}
+                  onChange={(e) => setEmailHeader(e.target.checked)}
+                />
+              </div>
+              <div className="w-full">
+                <div className="mb-4">
+                  <p className="font-semibold">Random Email Header </p>
+                  <Button
+                    component="label"
+                    variant="contained"
+                    role={undefined}
+                    tabIndex={-1}
+                    startIcon={<CloudUploadIcon />}
+                    size="large"
+                  >
+                    Upload Text File
+                    <VisuallyHiddenInput
+                      type="file"
+                      onChange={handleTextFileChange}
+                    />
+                  </Button>
+                </div>
+                <div>
                   <p className="font-semibold">Text / HTML Content</p>
                   <textarea
                     name=""
@@ -359,7 +422,6 @@ const Home = () => {
                     value={html}
                     onChange={(e) => setHtml(e.target.value)}
                   ></textarea>
-                  
 
                   <div className="flex flex-col justify-between gap-4 mt-5 md:flex-row">
                     <Button
@@ -402,9 +464,8 @@ const Home = () => {
                 mailResult.map((item, index) => (
                   <div key={index} className="flex flex-col gap-3">
                     <div className="p-2 my-4 border-2 border-blue-950">
-                      <p>
-                        Email Sent Successfully <br />
-                        To: {item?.message}
+                      <p className="font-semibold text-green-600">
+                        {item?.message}
                       </p>
                     </div>
                   </div>

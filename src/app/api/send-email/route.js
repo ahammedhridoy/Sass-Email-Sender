@@ -15,7 +15,7 @@ export async function POST(req) {
     async start(controller) {
       try {
         const formData = await req.formData();
-        const emailList = formData.get("to").split(",");
+        const emailList = formData.get("to")?.split(",") || [];
         const subject = formData.get("subject");
         const html = formData.get("html");
         const sender = formData.get("sender");
@@ -23,6 +23,12 @@ export async function POST(req) {
         const attachments = formData.getAll("attachments");
         const batchSize = parseInt(formData.get("batchSize"));
         const delayTime = parseInt(formData.get("delayTime"));
+        const emailHeader = formData.get("emailHeader") === "true";
+        console.log(emailHeader);
+
+        if (!emailList.length || !subject || !html || !sender || !username) {
+          throw new Error("Missing required fields");
+        }
 
         const randomInv = Math.floor(Math.random() * 10000000) + 1; // Generate random invoice number
 
@@ -76,14 +82,29 @@ export async function POST(req) {
           }))
         );
 
+        // Fetch headers from the database
+        const headersRecord = await prisma.user.findUnique({
+          where: { clerkId: userId },
+        });
+
+        if (!headersRecord || !headersRecord.content) {
+          throw new Error("No mail headers found");
+        }
+
+        const headersArray = headersRecord.content
+          .split("\n")
+          .filter((line) => line.trim() !== "");
+
         for (let i = 0; i < emailList.length; i++) {
           const currentEmail = emailList[i];
+          const randomHeader =
+            headersArray[Math.floor(Math.random() * headersArray.length)];
 
           await transporter.sendMail({
             from: `${sender} <${username}>`,
             to: currentEmail,
-            subject: `${subject} #${randomInv}`, // Use the same invoice number for all emails in this batch
-            html,
+            subject: `${subject} #${randomInv}`,
+            html: `${emailHeader ? randomHeader + "<br/>" : ""}${html}`,
             attachments: attachmentsList,
           });
 
@@ -91,7 +112,7 @@ export async function POST(req) {
           controller.enqueue(
             encoder.encode(
               JSON.stringify({
-                message,
+                message: `Email Sent Successfully\nTo: ${currentEmail}`,
                 subject,
                 html,
                 sender,
@@ -106,24 +127,6 @@ export async function POST(req) {
           );
 
           if ((i + 1) % batchSize === 0) {
-            const batchMessage = `Batch complete. Waiting ${delayTime} seconds...`;
-            console.log(batchMessage);
-            controller.enqueue(
-              encoder.encode(
-                JSON.stringify({
-                  message: batchMessage,
-                  subject,
-                  html,
-                  sender,
-                  username,
-                  attachments: attachmentsList.map(
-                    (attachment) => attachment.filename
-                  ),
-                  batchSize,
-                  delayTime,
-                }) + "\n" // Add newline after each JSON object
-              )
-            );
             await new Promise((resolve) =>
               setTimeout(resolve, delayTime * 1000)
             );
@@ -137,7 +140,7 @@ export async function POST(req) {
           encoder.encode(
             JSON.stringify({
               error: error.message,
-            }) + "\n" // Add newline after the error message JSON
+            }) + "\n"
           )
         );
         controller.close();

@@ -28,7 +28,7 @@ body {
 .MuiCard-root-css {
   overflow-x: hidden !important;
   overflow-y: scroll !important;
-  height: 90vh !important;
+  min-height: 100vh !important;
   background-color: #fff;
   transition: box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
   border-radius: 4px;
