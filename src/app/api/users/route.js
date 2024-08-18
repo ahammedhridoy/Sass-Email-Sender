@@ -1,6 +1,5 @@
 // app/api/users/route.js
 import { prisma } from "@/lib/prisma";
-import { NextResponse } from "next/server";
 
 export async function POST(req) {
   try {
@@ -22,8 +21,9 @@ export async function POST(req) {
       user = await prisma.user.create({
         data: {
           clerkId,
-          credentialsPath: "", // Initialize with empty or default values
-          tokenPath: "", // Initialize with empty or default values
+          credentialsPath: "",
+          tokenPath: "",
+          username: "",
         },
       });
     }

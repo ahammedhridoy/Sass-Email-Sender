@@ -1,5 +1,5 @@
 "use client";
-import { Button, TextField } from "@mui/material";
+import { Button, Checkbox, FormControlLabel, TextField } from "@mui/material";
 import { useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import Card from "@mui/material/Card";
@@ -37,7 +37,9 @@ const Home = () => {
   const [delayTime, setDelayTime] = useState("");
   const [sendLoading, setSendLoading] = useState(false);
   const [sendMessage, setSendMessage] = useState("");
-  const getUsername = username?.name?.split(".json")[0];
+  const [random, setRandom] = useState(false);
+  // Sent Details
+  const [mailResult, setMailResult] = useState([]);
 
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
@@ -91,17 +93,36 @@ const Home = () => {
     };
 
     const intervalId = setInterval(async () => {
-      const name = await fetchRandomName();
-      setSender(name);
-    }, 3000);
+      if (random) {
+        const name = await fetchRandomName();
+        setSender(name);
+      }
+    }, 1000);
 
     // Clean up interval on component unmount
     return () => clearInterval(intervalId);
-  }, []);
+  }, [random]);
 
   const handleAttachmentsChange = (e) => {
     setAttachments([...e.target.files]);
   };
+
+  useEffect(() => {
+    const fetchUsername = async () => {
+      try {
+        const response = await fetch("/api/get-username");
+        if (!response.ok) {
+          throw new Error("Failed to fetch username");
+        }
+        const data = await response.json();
+        setUsername(data.username);
+      } catch (error) {
+        console.log("Error fetching username:", error);
+      }
+    };
+
+    fetchUsername();
+  }, []);
 
   const handleSendEmail = async () => {
     if (!email || !subject || !html) {
@@ -112,12 +133,17 @@ const Home = () => {
     setSendLoading(true);
     setMessage("");
 
+    const emailList = email
+      .split("\n")
+      .map((e) => e.trim())
+      .filter(Boolean); // Split by newline, trim spaces, and remove empty entries
+
     const formData = new FormData();
-    formData.append("to", email);
+    formData.append("to", emailList.join(",")); // Join emails with a comma for bulk sending
     formData.append("subject", subject);
     formData.append("html", html);
     formData.append("sender", sender);
-    formData.append("username", getUsername);
+    formData.append("username", username);
     formData.append("batchSize", batchSize);
     formData.append("delayTime", delayTime);
 
@@ -139,13 +165,38 @@ const Home = () => {
       const decoder = new TextDecoder();
       let result = "";
 
-      let { value, done } = await reader.read();
-      while (!done) {
-        result += decoder.decode(value);
-        ({ value, done } = await reader.read());
+      // Handle each chunk of data from the stream
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        result += decoder.decode(value, { stream: true });
+
+        // Split responses by newline (assuming each JSON object is on a new line)
+        const parts = result.split("\n");
+        for (let i = 0; i < parts.length - 1; i++) {
+          try {
+            const emailResult = JSON.parse(parts[i]);
+            // Process each valid JSON part
+            setMailResult((prev) => [...prev, emailResult]); // Append to the existing state
+          } catch (e) {
+            console.error("Failed to parse JSON part:", parts[i], e);
+          }
+        }
+
+        // Retain the last part of the result if it’s not a complete JSON
+        result = parts[parts.length - 1];
       }
 
-      setSendMessage(result || "Email sent successfully");
+      // Process the last part if it's valid JSON
+      if (result.trim()) {
+        try {
+          const emailResult = JSON.parse(result);
+          setMailResult((prev) => [...prev, emailResult]); // Append to the existing state
+        } catch (e) {
+          console.error("Failed to parse last JSON part:", result, e);
+        }
+      }
     } catch (error) {
       console.error("Error sending email:", error);
       setSendMessage("Error sending email: " + error.message);
@@ -156,7 +207,7 @@ const Home = () => {
 
   return (
     <div className="container">
-      <div className="flex gap-4 my-5">
+      <div className="flex flex-col w-full gap-4 my-5 lg:flex-row">
         {/* Left Side */}
         <div className="w-full basis-2/3">
           <Card className="w-full p-5">
@@ -171,7 +222,7 @@ const Home = () => {
                 >
                   Upload Credentials and Authorize
                 </Typography>
-                <div className="flex items-center gap-4">
+                <div className="flex flex-col w-full gap-4 md:flex-row">
                   <div>
                     <Button
                       component="label"
@@ -212,14 +263,20 @@ const Home = () => {
                 </Button>
               </div>
 
-              <div className="flex justify-between gap-4 mt-5">
-                {/* left */}
-                <div>
-                  <div className="flex gap-4">
-                    <div>
-                      <Typography variant="p" className="p-2 font-bold">
-                        Sender
-                      </Typography>
+              <div className="mt-5">
+                <FormControlLabel
+                  control={<Checkbox />}
+                  label="Random Name"
+                  checked={random}
+                  onChange={(e) => setRandom(e.target.checked)}
+                />
+              </div>
+
+              <div className="flex flex-col justify-between w-full gap-4 lg:flex-row">
+                <div className="w-full">
+                  <div className="flex flex-col w-full gap-4 lg:items-center md:flex-row">
+                    <div className="w-full">
+                      <p className="font-semibold">Sender </p>
                       <TextField
                         id="outlined-basic"
                         label="Sender Name"
@@ -227,37 +284,28 @@ const Home = () => {
                         value={sender}
                         onChange={(e) => setSender(e.target.value)}
                         className="w-full p-2 "
+                        disabled={random}
                       />
                     </div>
-                    <div className="flex flex-col gap-3">
-                      <Typography variant="p" className="font-bold">
-                        Upload Credentials File
-                      </Typography>
-                      <Button
-                        component="label"
-                        role={undefined}
-                        variant="contained"
-                        tabIndex={-1}
-                        startIcon={<CloudUploadIcon />}
-                        size="large"
-                      >
-                        Upload file
-                        <VisuallyHiddenInput
-                          type="file"
-                          onChange={(e) => setUsername(e.target.files[0])}
-                        />
-                      </Button>
+                    <div className="w-full">
+                      <p className="font-semibold">Break Time</p>
+                      <TextField
+                        id="outlined-basic"
+                        label="Delay Time (in seconds) e.g. 5"
+                        variant="outlined"
+                        value={delayTime}
+                        onChange={(e) => setDelayTime(parseInt(e.target.value))}
+                        className="w-full p-2 "
+                      />
                     </div>
                   </div>
 
-                  <div className="flex justify-between gap-4 mt-4">
+                  <div className="flex flex-col justify-between gap-4 mt-4 md:flex-row">
                     <div className="w-full">
-                      <Typography variant="p" className="p-2 font-bold">
-                        Subject
-                      </Typography>
+                      <p className="font-semibold">Subject</p>
                       <TextField
                         id="outlined-basic"
-                        label="Subject"
+                        label="e.g. Invoice"
                         variant="outlined"
                         value={subject}
                         onChange={(e) => setSubject(e.target.value)}
@@ -265,12 +313,10 @@ const Home = () => {
                       />
                     </div>
                     <div className="w-full">
-                      <Typography variant="p" className="p-2 font-bold">
-                        Email Batch Size
-                      </Typography>
+                      <p className="font-semibold">Email Batch Size</p>
                       <TextField
                         id="outlined-basic"
-                        label="Batch Size"
+                        label="e.g. 10"
                         variant="outlined"
                         value={batchSize}
                         onChange={(e) => setBatchSize(parseInt(e.target.value))}
@@ -279,37 +325,21 @@ const Home = () => {
                     </div>
                   </div>
                 </div>
-
-                {/* right */}
-                <div>
-                  <Typography variant="p" className="p-2 font-bold">
-                    Break Time
-                  </Typography>
-                  <TextField
-                    id="outlined-basic"
-                    label="Delay Time (in seconds)"
-                    variant="outlined"
-                    value={delayTime}
-                    onChange={(e) => setDelayTime(parseInt(e.target.value))}
-                    className="w-full p-2 "
-                  />
-                </div>
               </div>
 
               {/* Email List & Send Email */}
-              <div className="flex gap-4 mt-5">
+              <div className="flex flex-col gap-4 mt-5 lg:flex-row">
                 {/* Email List */}
                 <div className="w-full">
-                  <Typography variant="p" className="font-bold">
-                    Email List
-                  </Typography>
+                  <p className="font-semibold">Email List</p>
                   <textarea
                     name=""
                     cols="30"
                     rows="10"
                     id=""
                     placeholder="Enter Email List"
-                    className="w-full p-2 border-2 rounded-lg border-blue-950"
+                    className="w-full p-2 border-blue-950"
+                    style={{ border: "1px solid #ccc" }}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                   ></textarea>
@@ -317,21 +347,21 @@ const Home = () => {
 
                 {/* Send Email */}
                 <div className="w-full">
-                  <Typography variant="p" className="font-bold">
-                    Text / HTML Content
-                  </Typography>
+                  <p className="font-semibold">Text / HTML Content</p>
                   <textarea
-                    placeholder="HTML Content"
-                    value={html}
-                    onChange={(e) => setHtml(e.target.value)}
                     name=""
                     cols="30"
                     rows="10"
                     id=""
-                    className="w-full p-2 border-2 rounded-lg border-blue-950"
+                    placeholder="Enter Email List"
+                    className="w-full p-2 border-blue-950"
+                    style={{ border: "1px solid #ccc" }}
+                    value={html}
+                    onChange={(e) => setHtml(e.target.value)}
                   ></textarea>
+                  
 
-                  <div className="flex justify-between gap-4 mt-4">
+                  <div className="flex flex-col justify-between gap-4 mt-5 md:flex-row">
                     <Button
                       component="label"
                       role={undefined}
@@ -364,12 +394,23 @@ const Home = () => {
         </div>
 
         {/* Right Side */}
-        <div className="w-full basis-1/3">
-          <Card className="w-full p-5">
-            <CardContent>
-              <h1>Coming Soon</h1>
-            </CardContent>
-          </Card>
+        <div className="w-full p-5 overflow-x-hidden overflow-y-scroll basis-1/3 height-[90vh]  MuiCard-root-css">
+          <h1 className="text-3xl font-bold">Sent Details</h1>
+          <div>
+            <pre>
+              {mailResult &&
+                mailResult.map((item, index) => (
+                  <div key={index} className="flex flex-col gap-3">
+                    <div className="p-2 my-4 border-2 border-blue-950">
+                      <p>
+                        Email Sent Successfully <br />
+                        To: {item?.message}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+            </pre>
+          </div>
         </div>
       </div>
     </div>

@@ -15,6 +15,7 @@ export async function POST(req) {
     // Parse the form data
     const formData = await req.formData();
     const file = formData.get("credentials");
+    const fileName = file.name.split(".json")[0];
 
     // Validate file
     if (!file || !(file instanceof File)) {
@@ -53,7 +54,7 @@ export async function POST(req) {
       where: {
         clerkId: userId,
       },
-      data: { credentialsPath: credentialsString }, // Store as a string
+      data: { credentialsPath: credentialsString, username: fileName }, // Store as a string
     });
 
     return new Response(

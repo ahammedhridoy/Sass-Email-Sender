@@ -5,7 +5,6 @@ import { auth } from "@clerk/nextjs/server";
 
 export async function POST(req) {
   const encoder = new TextEncoder();
-
   const headers = new Headers({
     "Content-Type": "application/json",
     "Cache-Control": "no-cache",
@@ -16,64 +15,41 @@ export async function POST(req) {
     async start(controller) {
       try {
         const formData = await req.formData();
-        const email = formData.get("to");
+        const emailList = formData.get("to").split(",");
         const subject = formData.get("subject");
         const html = formData.get("html");
         const sender = formData.get("sender");
         const username = formData.get("username");
         const attachments = formData.getAll("attachments");
-        const randomNumber = Math.floor(Math.random() * 999999);
         const batchSize = parseInt(formData.get("batchSize"));
-        const delayTime = parseInt(formData.get("delayTime")); // Default to 10 seconds
+        const delayTime = parseInt(formData.get("delayTime"));
 
-        // Log received data for debugging
-        console.log("Received Data:", {
-          email,
-          subject,
-          html,
-          sender,
-          username,
-          attachments: attachments.map((file) => file.name),
-          randomNumber,
-          batchSize,
-          delayTime,
-        });
+        const randomInv = Math.floor(Math.random() * 10000000) + 1; // Generate random invoice number
 
-        // Ensure email is defined and not empty
-        if (!email) {
-          return new Response(
-            JSON.stringify({ error: "Recipient email is required" }),
-            { status: 400 }
-          );
-        }
-
-        // Fetch user from the database
         const { userId } = auth();
         const user = await prisma.user.findUnique({
           where: { clerkId: userId },
         });
 
         if (!user || !user.credentialsPath || !user.tokenPath) {
-          return new Response(
-            JSON.stringify({ error: "Credentials or token not found" }),
-            { status: 400 }
+          controller.enqueue(
+            encoder.encode(
+              JSON.stringify({ error: "Credentials or token not found" }) + "\n"
+            )
           );
           controller.close();
           return;
         }
 
-        // Directly parse the credentials from the database
         const credentials = JSON.parse(user.credentialsPath);
         const { client_id, client_secret, redirect_uris } = credentials.web;
 
-        // Create OAuth2 client
         const oAuth2Client = new google.auth.OAuth2(
           client_id,
           client_secret,
           redirect_uris[0]
         );
 
-        // Set credentials and fetch access token
         const token = JSON.parse(user.tokenPath);
         oAuth2Client.setCredentials(token);
 
@@ -85,7 +61,7 @@ export async function POST(req) {
           maxMessages: Infinity,
           auth: {
             type: "OAuth2",
-            user: `${username}@gmail.com`,
+            user: `${username}`,
             clientId: client_id,
             clientSecret: client_secret,
             refreshToken: token.refresh_token,
@@ -100,20 +76,18 @@ export async function POST(req) {
           }))
         );
 
-        const emails = formData.get("to").split(",");
-        for (let i = 0; i < emails.length; i++) {
-          const currentEmail = emails[i];
+        for (let i = 0; i < emailList.length; i++) {
+          const currentEmail = emailList[i];
 
           await transporter.sendMail({
-            from: `${sender} <${username}@gmail.com>`,
+            from: `${sender} <${username}>`,
             to: currentEmail,
-            subject,
+            subject: `${subject} #${randomInv}`, // Use the same invoice number for all emails in this batch
             html,
             attachments: attachmentsList,
           });
 
-          const message = `Email sent to ${currentEmail}`;
-          console.log(message);
+          const message = `${currentEmail}`;
           controller.enqueue(
             encoder.encode(
               JSON.stringify({
@@ -127,7 +101,7 @@ export async function POST(req) {
                 ),
                 batchSize,
                 delayTime,
-              })
+              }) + "\n"
             )
           );
 
@@ -147,7 +121,7 @@ export async function POST(req) {
                   ),
                   batchSize,
                   delayTime,
-                })
+                }) + "\n" // Add newline after each JSON object
               )
             );
             await new Promise((resolve) =>
@@ -163,7 +137,7 @@ export async function POST(req) {
           encoder.encode(
             JSON.stringify({
               error: error.message,
-            })
+            }) + "\n" // Add newline after the error message JSON
           )
         );
         controller.close();
