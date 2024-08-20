@@ -42,7 +42,6 @@ const Home = () => {
   const [emailHeader, setEmailHeader] = useState(false);
   // Sent Details
   const [mailResult, setMailResult] = useState([]);
-  console.log(mailResult);
 
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
@@ -130,7 +129,7 @@ const Home = () => {
     setAttachments([...e.target.files]);
   };
 
-  //  Username
+  // Fetch Random Username
   useEffect(() => {
     const fetchUsername = async () => {
       try {
@@ -157,105 +156,80 @@ const Home = () => {
 
     setSendLoading(true);
     setMessage("");
-    setMailResult([]);
 
     const emailList = email
       .split("\n")
       .map((e) => e.trim())
-      .filter(Boolean);
+      .filter(Boolean); // Split by newline, trim spaces, and remove empty entries
+
+    // Fetch a new random sender name for each email
+    let currentSender = sender;
+    if (random) {
+      currentSender = await fetchRandomName();
+    }
+
+    const formData = new FormData();
+    formData.append("to", emailList.join(",")); // Join emails with a comma for bulk sending
+    formData.append("subject", subject);
+    formData.append("html", html);
+    formData.append("sender", currentSender);
+    formData.append("username", username);
+    formData.append("batchSize", batchSize);
+    formData.append("delayTime", delayTime);
+    formData.append("emailHeader", emailHeader);
+
+    attachments.forEach((attachment) => {
+      formData.append("attachments", attachment);
+    });
 
     try {
+      const response = await fetch("/api/send-email", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to send email");
+      }
+
+      const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      const totalEmails = emailList.length;
+      let result = "";
 
-      for (let i = 0; i < totalEmails; i++) {
-        const recipient = emailList[i];
+      // Handle each chunk of data from the stream
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
 
-        // Fetch a new random sender name if needed
-        let currentSender = sender;
-        if (random) {
-          currentSender = await fetchRandomName();
-          console.log("Using random sender:", currentSender);
-        }
+        result += decoder.decode(value, { stream: true });
 
-        // Prepare form data for each email
-        const formData = new FormData();
-        formData.append("to", recipient);
-        formData.append("subject", subject);
-        formData.append("html", html);
-        formData.append("sender", currentSender); // Use updated sender name
-        formData.append("username", username);
-        formData.append("batchSize", batchSize);
-        formData.append("delayTime", delayTime);
-        formData.append("emailHeader", emailHeader);
-
-        attachments.forEach((attachment) => {
-          formData.append("attachments", attachment);
-        });
-
-        const response = await fetch("/api/send-email", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to send email");
-        }
-
-        const reader = response.body.getReader();
-        let result = "";
-
-        while (true) {
-          const { value, done } = await reader.read();
-          if (done) break;
-
-          result += decoder.decode(value, { stream: true });
-
-          const parts = result.split("\n");
-          for (let i = 0; i < parts.length - 1; i++) {
-            try {
-              const emailResult = JSON.parse(parts[i]);
-              setMailResult((prev) => [...prev, emailResult]);
-
-              if (
-                emailResult.currentEmailCount &&
-                emailResult.totalEmailCount
-              ) {
-                setMessage(
-                  `Sent email ${emailResult.currentEmailCount} of ${emailResult.totalEmailCount}`
-                );
-              }
-            } catch (e) {
-              console.error("Failed to parse JSON part:", parts[i], e);
-            }
-          }
-
-          result = parts[parts.length - 1];
-        }
-
-        if (result.trim()) {
+        // Split responses by newline (assuming each JSON object is on a new line)
+        const parts = result.split("\n");
+        for (let i = 0; i < parts.length - 1; i++) {
           try {
-            const emailResult = JSON.parse(result);
-            setMailResult((prev) => [...prev, emailResult]);
+            const emailResult = JSON.parse(parts[i]);
 
-            if (emailResult.currentEmailCount && emailResult.totalEmailCount) {
-              setMessage(
-                `Sent email ${emailResult.currentEmailCount} of ${emailResult.totalEmailCount}`
-              );
-            }
+            setMailResult((prev) => [...prev, emailResult]);
           } catch (e) {
-            console.error("Failed to parse last JSON part:", result, e);
+            console.error("Failed to parse JSON part:", parts[i], e);
           }
         }
 
-        // Add delay if needed
-        if (i < totalEmails - 1 && delayTime > 0) {
-          await new Promise((resolve) => setTimeout(resolve, delayTime * 1000));
+        result = parts[parts.length - 1];
+      }
+
+      // Process the last part if it's valid JSON
+      if (result.trim()) {
+        try {
+          const emailResult = JSON.parse(result);
+          setMailResult((prev) => [...prev, emailResult]); // Append to the existing state
+        } catch (e) {
+          console.error("Failed to parse last JSON part:", result, e);
         }
       }
     } catch (error) {
       console.error("Error sending email:", error);
-      setMessage("Error sending email: " + error.message);
+      setSendMessage("Error sending email: " + error.message);
     } finally {
       setSendLoading(false);
     }

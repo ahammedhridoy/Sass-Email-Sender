@@ -62,6 +62,10 @@ export async function POST(req) {
         const delayTime = parseInt(formData.get("delayTime"));
         const emailHeader = formData.get("emailHeader") === "true";
 
+        if (!emailList.length || !subject || !html || !sender || !username) {
+          throw new Error("Missing required fields");
+        }
+
         const { userId } = auth();
         const user = await prisma.user.findUnique({
           where: { clerkId: userId },
@@ -112,6 +116,7 @@ export async function POST(req) {
           }))
         );
 
+        // Fetch headers from the database
         const headersRecord = await prisma.user.findUnique({
           where: { clerkId: userId },
         });
@@ -129,6 +134,7 @@ export async function POST(req) {
           const randomHeader =
             headersArray[Math.floor(Math.random() * headersArray.length)];
 
+          // Replace the tags in the subject and html
           const processedSubject = replaceTags(subject, currentEmail);
           const processedHtml = replaceTags(
             `${emailHeader ? randomHeader + "<br/>" : ""}${html}`,
@@ -157,8 +163,8 @@ export async function POST(req) {
                 ),
                 batchSize,
                 delayTime,
-                currentEmailCount: i + 1,
-                totalEmailCount: emailList.length,
+                currentEmailCount: i + 1, // Current email number
+                totalEmailCount: emailList.length, // Total number of emails
               }) + "\n"
             )
           );
