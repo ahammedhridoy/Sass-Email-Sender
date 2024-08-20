@@ -22,12 +22,12 @@ const VisuallyHiddenInput = styled("input")({
 });
 
 const Home = () => {
-  // Component for Uploading Credentials and Authorizing
+  // Credentials and Authorizing
   const { user } = useUser();
   const [file, setFile] = useState(null);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  // Component for Sending Emails
+  // Sending Emails
   const [email, setEmail] = useState("");
   const [subject, setSubject] = useState("");
   const [html, setHtml] = useState("");
@@ -42,6 +42,7 @@ const Home = () => {
   const [emailHeader, setEmailHeader] = useState(false);
   // Sent Details
   const [mailResult, setMailResult] = useState([]);
+  console.log(mailResult);
 
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
@@ -49,7 +50,6 @@ const Home = () => {
 
   const handleUploadCredentials = async () => {
     if (!file || !user) {
-      setMessage("Please select a file and ensure you are logged in.");
       toast.error("Please select a file and ensure you are logged in.");
       return;
     }
@@ -81,30 +81,19 @@ const Home = () => {
     }
   };
 
-  // Fetch a random name every 3 seconds and update the sender field
-  useEffect(() => {
-    const fetchRandomName = async () => {
-      try {
-        const response = await fetch("https://randomuser.me/api/");
-        const data = await response.json();
-        const user = data.results[0];
-        return `${user.name.first} ${user.name.last}`;
-      } catch (error) {
-        console.error("Error fetching random name:", error);
-        return "Unknown Sender";
-      }
-    };
-
-    const intervalId = setInterval(async () => {
-      if (random) {
-        const name = await fetchRandomName();
-        setSender(name);
-      }
-    }, 1000);
-
-    // Clean up interval on component unmount
-    return () => clearInterval(intervalId);
-  }, [random]);
+  // Fetch a random name
+  const fetchRandomName = async () => {
+    try {
+      const response = await fetch("https://randomuser.me/api/?nat=us");
+      const data = await response.json();
+      const user = data.results[0];
+      const userName = `${user.name.first} ${user.name.last}`;
+      return userName;
+    } catch (error) {
+      console.error("Error fetching random name:", error);
+      return "Unknown Sender";
+    }
+  };
 
   // Upload Text File
   const handleTextFileChange = async (event) => {
@@ -141,6 +130,7 @@ const Home = () => {
     setAttachments([...e.target.files]);
   };
 
+  //  Username
   useEffect(() => {
     const fetchUsername = async () => {
       try {
@@ -158,6 +148,7 @@ const Home = () => {
     fetchUsername();
   }, []);
 
+  // Send Email
   const handleSendEmail = async () => {
     if (!email || !subject || !html) {
       setMessage("Please fill out all required fields.");
@@ -166,75 +157,105 @@ const Home = () => {
 
     setSendLoading(true);
     setMessage("");
+    setMailResult([]);
 
     const emailList = email
       .split("\n")
       .map((e) => e.trim())
-      .filter(Boolean); // Split by newline, trim spaces, and remove empty entries
-
-    const formData = new FormData();
-    formData.append("to", emailList.join(",")); // Join emails with a comma for bulk sending
-    formData.append("subject", subject);
-    formData.append("html", html);
-    formData.append("sender", sender);
-    formData.append("username", username);
-    formData.append("batchSize", batchSize);
-    formData.append("delayTime", delayTime);
-    formData.append("emailHeader", emailHeader);
-
-    attachments.forEach((attachment) => {
-      formData.append("attachments", attachment);
-    });
+      .filter(Boolean);
 
     try {
-      const response = await fetch("/api/send-email", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to send email");
-      }
-
-      const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      let result = "";
+      const totalEmails = emailList.length;
 
-      // Handle each chunk of data from the stream
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
+      for (let i = 0; i < totalEmails; i++) {
+        const recipient = emailList[i];
 
-        result += decoder.decode(value, { stream: true });
+        // Fetch a new random sender name if needed
+        let currentSender = sender;
+        if (random) {
+          currentSender = await fetchRandomName();
+          console.log("Using random sender:", currentSender);
+        }
 
-        // Split responses by newline (assuming each JSON object is on a new line)
-        const parts = result.split("\n");
-        for (let i = 0; i < parts.length - 1; i++) {
+        // Prepare form data for each email
+        const formData = new FormData();
+        formData.append("to", recipient);
+        formData.append("subject", subject);
+        formData.append("html", html);
+        formData.append("sender", currentSender); // Use updated sender name
+        formData.append("username", username);
+        formData.append("batchSize", batchSize);
+        formData.append("delayTime", delayTime);
+        formData.append("emailHeader", emailHeader);
+
+        attachments.forEach((attachment) => {
+          formData.append("attachments", attachment);
+        });
+
+        const response = await fetch("/api/send-email", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to send email");
+        }
+
+        const reader = response.body.getReader();
+        let result = "";
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+
+          result += decoder.decode(value, { stream: true });
+
+          const parts = result.split("\n");
+          for (let i = 0; i < parts.length - 1; i++) {
+            try {
+              const emailResult = JSON.parse(parts[i]);
+              setMailResult((prev) => [...prev, emailResult]);
+
+              if (
+                emailResult.currentEmailCount &&
+                emailResult.totalEmailCount
+              ) {
+                setMessage(
+                  `Sent email ${emailResult.currentEmailCount} of ${emailResult.totalEmailCount}`
+                );
+              }
+            } catch (e) {
+              console.error("Failed to parse JSON part:", parts[i], e);
+            }
+          }
+
+          result = parts[parts.length - 1];
+        }
+
+        if (result.trim()) {
           try {
-            const emailResult = JSON.parse(parts[i]);
-            // Process each valid JSON part
+            const emailResult = JSON.parse(result);
             setMailResult((prev) => [...prev, emailResult]);
+
+            if (emailResult.currentEmailCount && emailResult.totalEmailCount) {
+              setMessage(
+                `Sent email ${emailResult.currentEmailCount} of ${emailResult.totalEmailCount}`
+              );
+            }
           } catch (e) {
-            console.error("Failed to parse JSON part:", parts[i], e);
+            console.error("Failed to parse last JSON part:", result, e);
           }
         }
 
-        // Retain the last part of the result if it’s not a complete JSON
-        result = parts[parts.length - 1];
-      }
-
-      // Process the last part if it's valid JSON
-      if (result.trim()) {
-        try {
-          const emailResult = JSON.parse(result);
-          setMailResult((prev) => [...prev, emailResult]); // Append to the existing state
-        } catch (e) {
-          console.error("Failed to parse last JSON part:", result, e);
+        // Add delay if needed
+        if (i < totalEmails - 1 && delayTime > 0) {
+          await new Promise((resolve) => setTimeout(resolve, delayTime * 1000));
         }
       }
     } catch (error) {
       console.error("Error sending email:", error);
-      setSendMessage("Error sending email: " + error.message);
+      setMessage("Error sending email: " + error.message);
     } finally {
       setSendLoading(false);
     }
@@ -419,7 +440,7 @@ const Home = () => {
                     cols="30"
                     rows="10"
                     id=""
-                    placeholder="Enter Email List"
+                    placeholder="Enter Text / HTML"
                     className="w-full p-2 border-blue-950"
                     style={{ border: "1px solid #ccc" }}
                     value={html}
@@ -458,8 +479,8 @@ const Home = () => {
           </Card>
         </div>
 
-        {/* Right Side */}
-        <div className="w-full p-5 overflow-x-hidden overflow-y-scroll basis-1/3 height-[90vh]  MuiCard-root-css">
+        {/* Right Side Email Details*/}
+        <div className="w-full  p-5 overflow-x-hidden h-[992px] basis-1/3 MuiCard-root-css">
           <h1 className="text-3xl font-bold">Sent Details</h1>
           <div>
             <pre>
@@ -469,6 +490,18 @@ const Home = () => {
                     <div className="p-2 my-4 border-2 border-blue-950">
                       <p className="font-semibold text-green-600">
                         {item?.message}
+                      </p>
+                      <p>
+                        Count:{" "}
+                        <span className="font-bold">
+                          {item?.currentEmailCount}
+                        </span>
+                      </p>
+                      <p>
+                        Total Count:{" "}
+                        <span className="font-bold">
+                          {item?.totalEmailCount}
+                        </span>
                       </p>
                     </div>
                   </div>
