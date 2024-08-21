@@ -29,6 +29,7 @@ const Home = () => {
   const [loading, setLoading] = useState(false);
   // Sending Emails
   const [email, setEmail] = useState("");
+  const [logo, setLogo] = useState("");
   const [subject, setSubject] = useState("");
   const [html, setHtml] = useState("");
   const [attachments, setAttachments] = useState([]);
@@ -37,11 +38,11 @@ const Home = () => {
   const [batchSize, setBatchSize] = useState("");
   const [delayTime, setDelayTime] = useState("");
   const [sendLoading, setSendLoading] = useState(false);
-  const [sendMessage, setSendMessage] = useState("");
   const [random, setRandom] = useState(false);
   const [emailHeader, setEmailHeader] = useState(false);
   // Sent Details
   const [mailResult, setMailResult] = useState([]);
+  const [totalEmailCount, setTotalEmailCount] = useState("");
 
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
@@ -149,6 +150,7 @@ const Home = () => {
 
   // Send Email
   const handleSendEmail = async () => {
+    // Check required fields
     if (!email || !subject || !html) {
       setMessage("Please fill out all required fields.");
       return;
@@ -156,80 +158,112 @@ const Home = () => {
 
     setSendLoading(true);
     setMessage("");
+    setMailResult([]);
 
+    // Split emails and set total count
     const emailList = email
       .split("\n")
       .map((e) => e.trim())
-      .filter(Boolean); // Split by newline, trim spaces, and remove empty entries
+      .filter(Boolean);
+    const totalEmails = emailList.length; // Define totalEmails correctly
 
-    // Fetch a new random sender name for each email
-    let currentSender = sender;
-    if (random) {
-      currentSender = await fetchRandomName();
-    }
-
-    const formData = new FormData();
-    formData.append("to", emailList.join(",")); // Join emails with a comma for bulk sending
-    formData.append("subject", subject);
-    formData.append("html", html);
-    formData.append("sender", currentSender);
-    formData.append("username", username);
-    formData.append("batchSize", batchSize);
-    formData.append("delayTime", delayTime);
-    formData.append("emailHeader", emailHeader);
-
-    attachments.forEach((attachment) => {
-      formData.append("attachments", attachment);
-    });
+    setTotalEmailCount(totalEmails); // Update state correctly
 
     try {
-      const response = await fetch("/api/send-email", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to send email");
-      }
-
-      const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      let result = "";
 
-      // Handle each chunk of data from the stream
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
+      for (let i = 0; i < totalEmails; i++) {
+        const recipient = emailList[i];
 
-        result += decoder.decode(value, { stream: true });
+        // Fetch a new random sender name if needed
+        let currentSender = sender;
+        if (random) {
+          currentSender = await fetchRandomName();
+          console.log("Using random sender:", currentSender);
+        }
 
-        // Split responses by newline (assuming each JSON object is on a new line)
-        const parts = result.split("\n");
-        for (let i = 0; i < parts.length - 1; i++) {
+        // Prepare form data for each email
+        const formData = new FormData();
+        formData.append("to", recipient);
+        formData.append("subject", subject);
+        formData.append("html", html);
+        formData.append("sender", currentSender);
+        formData.append("username", username);
+        formData.append("batchSize", batchSize);
+        formData.append("delayTime", delayTime);
+        formData.append("emailHeader", emailHeader);
+        formData.append("logo", logo);
+        formData.append("currentEmailCount", i + 1);
+        formData.append("totalEmailCount", totalEmails);
+
+        attachments.forEach((attachment) => {
+          formData.append("attachments", attachment);
+        });
+
+        const response = await fetch("/api/send-email", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to send email");
+        }
+
+        const reader = response.body.getReader();
+        let result = "";
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+
+          result += decoder.decode(value, { stream: true });
+
+          const parts = result.split("\n");
+          for (let j = 0; j < parts.length - 1; j++) {
+            try {
+              const emailResult = JSON.parse(parts[j]);
+
+              setMailResult((prev) => [...prev, emailResult]);
+
+              if (
+                emailResult.currentEmailCount &&
+                emailResult.totalEmailCount
+              ) {
+                setMessage(
+                  `Sent email ${emailResult.currentEmailCount} of ${emailResult.totalEmailCount}`
+                );
+              }
+            } catch (e) {
+              console.error("Failed to parse JSON part:", parts[j], e);
+            }
+          }
+
+          result = parts[parts.length - 1];
+        }
+
+        if (result.trim()) {
           try {
-            const emailResult = JSON.parse(parts[i]);
-
+            const emailResult = JSON.parse(result);
             setMailResult((prev) => [...prev, emailResult]);
+
+            if (emailResult.currentEmailCount && emailResult.totalEmailCount) {
+              setMessage(
+                `Sent email ${emailResult.currentEmailCount} of ${emailResult.totalEmailCount}`
+              );
+            }
           } catch (e) {
-            console.error("Failed to parse JSON part:", parts[i], e);
+            console.error("Failed to parse last JSON part:", result, e);
           }
         }
 
-        result = parts[parts.length - 1];
-      }
-
-      // Process the last part if it's valid JSON
-      if (result.trim()) {
-        try {
-          const emailResult = JSON.parse(result);
-          setMailResult((prev) => [...prev, emailResult]); // Append to the existing state
-        } catch (e) {
-          console.error("Failed to parse last JSON part:", result, e);
+        // Add delay if needed
+        if (i < totalEmails - 1 && delayTime > 0) {
+          await new Promise((resolve) => setTimeout(resolve, delayTime * 1000));
         }
       }
     } catch (error) {
       console.error("Error sending email:", error);
-      setSendMessage("Error sending email: " + error.message);
+      setMessage("Error sending email: " + error.message);
     } finally {
       setSendLoading(false);
     }
@@ -294,7 +328,7 @@ const Home = () => {
                 </Button>
               </div>
 
-              <div className="mt-5">
+              <div className="mt-5 ml-2">
                 <FormControlLabel
                   control={<Checkbox />}
                   label="Random Name"
@@ -307,9 +341,9 @@ const Home = () => {
                 <div className="w-full">
                   <div className="flex flex-col w-full gap-4 lg:items-center md:flex-row">
                     <div className="w-full">
-                      <p className="font-semibold">Sender </p>
+                      <p className="ml-2 font-semibold">Sender </p>
                       <TextField
-                        id="outlined-basic"
+                        id="sender"
                         label="Sender Name"
                         variant="outlined"
                         value={sender}
@@ -319,9 +353,9 @@ const Home = () => {
                       />
                     </div>
                     <div className="w-full">
-                      <p className="font-semibold">Break Time</p>
+                      <p className="ml-2 font-semibold">Break Time</p>
                       <TextField
-                        id="outlined-basic"
+                        id="break-time"
                         label="Delay Time (in seconds) e.g. 5"
                         variant="outlined"
                         value={delayTime}
@@ -333,9 +367,9 @@ const Home = () => {
 
                   <div className="flex flex-col justify-between gap-4 mt-4 md:flex-row">
                     <div className="w-full">
-                      <p className="font-semibold">Subject</p>
+                      <p className="ml-2 font-semibold">Subject</p>
                       <TextField
-                        id="outlined-basic"
+                        id="subject"
                         label="e.g. Invoice"
                         variant="outlined"
                         value={subject}
@@ -344,9 +378,9 @@ const Home = () => {
                       />
                     </div>
                     <div className="w-full">
-                      <p className="font-semibold">Email Batch Size</p>
+                      <p className="ml-2 font-semibold">Email Batch Size</p>
                       <TextField
-                        id="outlined-basic"
+                        id="batch-size"
                         label="e.g. 10"
                         variant="outlined"
                         value={batchSize}
@@ -356,6 +390,21 @@ const Home = () => {
                     </div>
                   </div>
                 </div>
+              </div>
+
+              {/* Logo */}
+              <div className="w-full my-2">
+                <p className="font-semibold">Logo Box</p>
+                <textarea
+                  cols="30"
+                  rows="5"
+                  id="logo-box"
+                  placeholder="Enter Email List"
+                  className="w-full p-2 border-blue-950"
+                  style={{ border: "1px solid #ccc" }}
+                  value={logo}
+                  onChange={(e) => setLogo(e.target.value)}
+                ></textarea>
               </div>
 
               {/* Random Email Header */}
@@ -395,10 +444,9 @@ const Home = () => {
                 <div className="w-full">
                   <p className="font-semibold">Email List</p>
                   <textarea
-                    name=""
                     cols="30"
                     rows="10"
-                    id=""
+                    id="email-list"
                     placeholder="Enter Email List"
                     className="w-full p-2 border-blue-950"
                     style={{ border: "1px solid #ccc" }}
@@ -410,10 +458,9 @@ const Home = () => {
                 <div className="w-full">
                   <p className="font-semibold">Text / HTML Content</p>
                   <textarea
-                    name=""
                     cols="30"
                     rows="10"
-                    id=""
+                    id="text-content"
                     placeholder="Enter Text / HTML"
                     className="w-full p-2 border-blue-950"
                     style={{ border: "1px solid #ccc" }}
@@ -454,7 +501,7 @@ const Home = () => {
         </div>
 
         {/* Right Side Email Details*/}
-        <div className="w-full  p-5 overflow-x-hidden h-[992px] basis-1/3 MuiCard-root-css">
+        <div className="w-full  p-5 overflow-x-hidden lg:h-[1170px] h-0 basis-1/3 MuiCard-root-css relative">
           <h1 className="text-3xl font-bold">Sent Details</h1>
           <div>
             <pre>
@@ -465,16 +512,12 @@ const Home = () => {
                       <p className="font-semibold text-green-600">
                         {item?.message}
                       </p>
-                      <p>
-                        Count:{" "}
-                        <span className="font-bold">
-                          {item?.currentEmailCount}
-                        </span>
-                      </p>
-                      <p>
-                        Total Count:{" "}
-                        <span className="font-bold">
-                          {item?.totalEmailCount}
+                      <p className="font-semibold ">To: {item?.to}</p>
+                      <p className="absolute top-[-40px] right-5 flex justify-center gap-2 items-center bg-blue-950 text-white px-3 py-1 rounded">
+                        <span className="text-2xl font-bold">{index + 1}</span>
+                        {"/"}
+                        <span className="text-2xl font-bold">
+                          {totalEmailCount}
                         </span>
                       </p>
                     </div>

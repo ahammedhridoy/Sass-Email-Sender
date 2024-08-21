@@ -57,6 +57,7 @@ export async function POST(req) {
         let html = formData.get("html");
         const sender = formData.get("sender");
         const username = formData.get("username");
+        const logo = formData.get("logo");
         const attachments = formData.getAll("attachments");
         const batchSize = parseInt(formData.get("batchSize"));
         const delayTime = parseInt(formData.get("delayTime"));
@@ -137,7 +138,9 @@ export async function POST(req) {
           // Replace the tags in the subject and html
           const processedSubject = replaceTags(subject, currentEmail);
           const processedHtml = replaceTags(
-            `${emailHeader ? randomHeader + "<br/>" : ""}${html}`,
+            `${logo ? logo + "<br/>" : ""} ${
+              emailHeader ? randomHeader + "<br/>" : ""
+            }${html}`,
             currentEmail
           );
 
