@@ -6,7 +6,7 @@ import { auth } from "@clerk/nextjs/server";
 function replaceTags(template, email) {
   // Generate the random values based on the tags
   const randomCode = Math.floor(Math.random() * 10000000) + 1;
-  const emailName = email.split("@")[0];
+  const emailName = email;
   const subsid = `${String.fromCharCode(
     65 + Math.floor(Math.random() * 26)
   )}${Math.floor(Math.random() * 1000000000)
@@ -34,7 +34,7 @@ function replaceTags(template, email) {
   // Replace tags with the generated values
   return template
     .replace(/#RANDOM#/g, `#${randomCode}`)
-    .replace(/#EMAIL#/g, emailName)
+    .replace(/#EMAIL#/g, `${emailName}`)
     .replace(/#SUBSID#/g, `(#${subsid})`)
     .replace(/#INVOICE#/g, invoice)
     .replace(/#REF#/g, `#${ref}`);

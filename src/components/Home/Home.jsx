@@ -152,7 +152,7 @@ const Home = () => {
   const handleSendEmail = async () => {
     // Check required fields
     if (!email || !subject || !html) {
-      setMessage("Please fill out all required fields.");
+      toast.error("Please fill out all required fields.");
       return;
     }
 
@@ -206,6 +206,7 @@ const Home = () => {
         });
 
         if (!response.ok) {
+          toast.error("Failed to send email");
           throw new Error("Failed to send email");
         }
 
@@ -229,6 +230,7 @@ const Home = () => {
                 emailResult.currentEmailCount &&
                 emailResult.totalEmailCount
               ) {
+                toast.success("Email sent successfully");
                 setMessage(
                   `Sent email ${emailResult.currentEmailCount} of ${emailResult.totalEmailCount}`
                 );
@@ -262,7 +264,6 @@ const Home = () => {
         }
       }
     } catch (error) {
-      console.error("Error sending email:", error);
       setMessage("Error sending email: " + error.message);
     } finally {
       setSendLoading(false);
@@ -316,7 +317,6 @@ const Home = () => {
                     </Button>
                   </div>
                 </div>
-                <p className="mt-2 text-blue-800">{message}</p>
                 <Button
                   className="mt-4"
                   variant="contained"
@@ -396,10 +396,7 @@ const Home = () => {
               <div className="w-full my-2">
                 <p className="font-semibold">Logo Box</p>
                 <textarea
-                  cols="30"
-                  rows="5"
-                  id="logo-box"
-                  placeholder="Enter Email List"
+                  placeholder="Enter Logo HTML"
                   className="w-full p-2 border-blue-950"
                   style={{ border: "1px solid #ccc" }}
                   value={logo}
@@ -460,8 +457,8 @@ const Home = () => {
                   <textarea
                     cols="30"
                     rows="10"
-                    id="text-content"
-                    placeholder="Enter Text / HTML"
+                    id="email-list"
+                    placeholder="Enter Email List"
                     className="w-full p-2 border-blue-950"
                     style={{ border: "1px solid #ccc" }}
                     value={html}
@@ -501,19 +498,19 @@ const Home = () => {
         </div>
 
         {/* Right Side Email Details*/}
-        <div className="w-full  p-5 overflow-x-hidden lg:h-[1170px] h-0 basis-1/3 MuiCard-root-css relative">
+        <div className="w-full  p-5 overflow-x-hidden lg:h-[1090px] h-0 basis-1/3 MuiCard-root-css relative">
           <h1 className="text-3xl font-bold">Sent Details</h1>
           <div>
             <pre>
               {mailResult &&
-                mailResult.map((item, index) => (
-                  <div key={index} className="flex flex-col gap-3">
+                [...mailResult].reverse().map((item, index) => (
+                  <div key={index} className="flex flex-col gap-3 ">
                     <div className="p-2 my-4 border-2 border-blue-950">
                       <p className="font-semibold text-green-600">
                         {item?.message}
                       </p>
                       <p className="font-semibold ">To: {item?.to}</p>
-                      <p className="absolute top-[-40px] right-5 flex justify-center gap-2 items-center bg-blue-950 text-white px-3 py-1 rounded">
+                      <p className="absolute top-[15px] right-5 flex justify-center gap-2 items-center bg-blue-950 text-white px-3 py-1 rounded">
                         <span className="text-2xl font-bold">{index + 1}</span>
                         {"/"}
                         <span className="text-2xl font-bold">

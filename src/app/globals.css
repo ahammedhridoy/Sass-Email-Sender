@@ -42,3 +42,8 @@ body {
 button.cl-formButtonPrimary.cl-button.🔒️.cl-internal-ttumny {
   background-color: var(--primary-clr);
 }
+
+textarea:focus-visible {
+  outline-color: #3f73d2;
+  border: 2px solid #3f73d2;
+}
