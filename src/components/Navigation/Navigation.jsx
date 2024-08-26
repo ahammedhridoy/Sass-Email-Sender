@@ -58,8 +58,13 @@ const Navigation = () => {
                   open={Boolean(anchorEl)}
                   onClose={handleClose}
                 >
+                  {!auth && (
+                    <MenuItem onClick={handleClose}>
+                      <SignInButton />
+                    </MenuItem>
+                  )}
                   <MenuItem onClick={handleClose}>
-                    <SignInButton />
+                    <Link href="/smtp">SMTP</Link>
                   </MenuItem>
                   <MenuItem onClick={handleClose}>
                     <SignOutButton />
