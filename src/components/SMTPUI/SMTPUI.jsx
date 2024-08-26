@@ -47,6 +47,7 @@ const Home = () => {
   // Sent Details
   const [mailResult, setMailResult] = useState([]);
   const [totalEmailCount, setTotalEmailCount] = useState("");
+  console.log(mailResult);
 
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
@@ -185,8 +186,6 @@ const Home = () => {
         formData.append("smtpUser", smtpUser);
         formData.append("password", password);
 
-        console.log(formData.host, formData.port, formData.smtpUser, formData);
-
         attachments.forEach((attachment) => {
           formData.append("attachments", attachment);
         });
@@ -310,6 +309,63 @@ const Home = () => {
                 </div>
               </div>
 
+              <div className="my-2">
+                <FormControlLabel
+                  control={<Checkbox />}
+                  label="Custom SMTP"
+                  checked={useCustomSmtp}
+                  onChange={handleSMTPCheckboxChange}
+                />
+              </div>
+              {useCustomSmtp && (
+                <div className="flex flex-col w-full gap-4 md:flex-row">
+                  <div className="w-full">
+                    <p className="ml-2 font-semibold">Host</p>
+                    <TextField
+                      name="host"
+                      label="e.g. Invoice"
+                      variant="outlined"
+                      value={host}
+                      onChange={(e) => setHost(e.target.value)}
+                      className="w-full p-2"
+                    />
+                  </div>
+                  <div className="w-full">
+                    <p className="ml-2 font-semibold">Port</p>
+                    <TextField
+                      name="port"
+                      label="e.g. 10"
+                      variant="outlined"
+                      value={port}
+                      onChange={(e) => setPort(e.target.value)}
+                      className="w-full p-2"
+                    />
+                  </div>
+                  <div className="w-full">
+                    <p className="ml-2 font-semibold">User</p>
+                    <TextField
+                      name="user"
+                      label="e.g. 10"
+                      variant="outlined"
+                      value={smtpUser}
+                      onChange={(e) => setSmtpUser(e.target.value)}
+                      className="w-full p-2"
+                    />
+                  </div>
+                  <div className="w-full">
+                    <p className="ml-2 font-semibold">Password</p>
+                    <TextField
+                      name="password"
+                      label="e.g. 10"
+                      variant="outlined"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full p-2"
+                    />
+                  </div>
+                </div>
+              )}
+
               <div className="mt-5 ml-2">
                 <FormControlLabel
                   control={<Checkbox />}
@@ -396,62 +452,7 @@ const Home = () => {
                     onChange={(e) => setEmailHeader(e.target.checked)}
                   />
                 </div>
-                <div className="my-2">
-                  <FormControlLabel
-                    control={<Checkbox />}
-                    label="Custom SMTP"
-                    checked={useCustomSmtp}
-                    onChange={handleSMTPCheckboxChange}
-                  />
-                </div>
-                {useCustomSmtp && (
-                  <div>
-                    <div className="w-full">
-                      <p className="ml-2 font-semibold">Host</p>
-                      <TextField
-                        name="host"
-                        label="e.g. Invoice"
-                        variant="outlined"
-                        value={host}
-                        onChange={(e) => setHost(e.target.value)}
-                        className="w-full p-2"
-                      />
-                    </div>
-                    <div className="w-full">
-                      <p className="ml-2 font-semibold">Port</p>
-                      <TextField
-                        name="port"
-                        label="e.g. 10"
-                        variant="outlined"
-                        value={port}
-                        onChange={(e) => setPort(e.target.value)}
-                        className="w-full p-2"
-                      />
-                    </div>
-                    <div className="w-full">
-                      <p className="ml-2 font-semibold">User</p>
-                      <TextField
-                        name="user"
-                        label="e.g. 10"
-                        variant="outlined"
-                        value={smtpUser}
-                        onChange={(e) => setSmtpUser(e.target.value)}
-                        className="w-full p-2"
-                      />
-                    </div>
-                    <div className="w-full">
-                      <p className="ml-2 font-semibold">Password</p>
-                      <TextField
-                        name="password"
-                        label="e.g. 10"
-                        variant="outlined"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="w-full p-2"
-                      />
-                    </div>
-                  </div>
-                )}
+
                 <div className="w-full">
                   <div className="mb-4">
                     <p className="font-semibold">Random Email Header </p>
@@ -544,13 +545,11 @@ const Home = () => {
                 [...mailResult].reverse().map((item, index) => (
                   <div key={index} className="flex flex-col gap-3 ">
                     <div className="p-2 my-4 border-2 border-blue-950">
-                      {item}
                       <p className="font-semibold text-green-600">
                         {item?.message}
                       </p>
-                      <p className="font-semibold ">Host: {item?.host}</p>
                       <p className="font-semibold ">To: {item?.to}</p>
-                      <p className="absolute top-[15px] right-5 flex justify-center gap-2 items-center bg-blue-950 text-white px-3 py-1 rounded">
+                      <p className="absolute top-[-40px] right-5 flex justify-center gap-2 items-center bg-blue-950 text-white px-3 py-1 rounded">
                         <span className="text-2xl font-bold">{index + 1}</span>
                         {"/"}
                         <span className="text-2xl font-bold">
