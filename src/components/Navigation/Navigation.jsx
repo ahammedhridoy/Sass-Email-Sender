@@ -64,6 +64,9 @@ const Navigation = () => {
                     </MenuItem>
                   )}
                   <MenuItem onClick={handleClose}>
+                    <Link href="/">Home</Link>
+                  </MenuItem>
+                  <MenuItem onClick={handleClose}>
                     <Link href="/smtp">SMTP</Link>
                   </MenuItem>
                   <MenuItem onClick={handleClose}>
