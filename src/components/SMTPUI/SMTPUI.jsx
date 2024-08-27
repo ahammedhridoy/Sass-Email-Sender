@@ -1,7 +1,6 @@
 "use client";
 import { Button, Checkbox, FormControlLabel, TextField } from "@mui/material";
-import { useEffect, useState } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useState } from "react";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
@@ -57,11 +56,10 @@ const Home = () => {
     setUseCustomSmtp(e.target.checked);
   };
 
-  const handleUploadSMTP = async (e) => {
-    e.preventDefault();
-
+  // Use SMTP
+  const handleUploadSMTP = async () => {
     if (!file) {
-      setMessage("Please upload a file");
+      toast.error("Please upload a file");
       return;
     }
 
@@ -78,7 +76,11 @@ const Home = () => {
         });
 
         const result = await response.json();
-        setMessage(result.message);
+        if (response.ok) {
+          toast.success("File uploaded successfully");
+        } else {
+          toast.error("Error uploading file: " + result.message);
+        }
       } catch (error) {
         setMessage("Error uploading file: " + error.message);
       }
@@ -288,7 +290,7 @@ const Home = () => {
                       startIcon={<CloudUploadIcon />}
                       size="large"
                     >
-                      Upload file
+                      Upload JSON File
                       <VisuallyHiddenInput
                         type="file"
                         onChange={handleFileChange}
@@ -318,50 +320,54 @@ const Home = () => {
                 />
               </div>
               {useCustomSmtp && (
-                <div className="flex flex-col w-full gap-4 md:flex-row">
-                  <div className="w-full">
-                    <p className="ml-2 font-semibold">Host</p>
-                    <TextField
-                      name="host"
-                      label="e.g. Invoice"
-                      variant="outlined"
-                      value={host}
-                      onChange={(e) => setHost(e.target.value)}
-                      className="w-full p-2"
-                    />
+                <div>
+                  <div className="flex flex-col w-full gap-4 mb-4 md:flex-row">
+                    <div className="w-full">
+                      <p className="ml-2 font-semibold">Host</p>
+                      <TextField
+                        name="host"
+                        label="Host Name"
+                        variant="outlined"
+                        value={host}
+                        onChange={(e) => setHost(e.target.value)}
+                        className="w-full p-2"
+                      />
+                    </div>
+                    <div className="w-full">
+                      <p className="ml-2 font-semibold">Port</p>
+                      <TextField
+                        name="port"
+                        label="Port Number"
+                        variant="outlined"
+                        value={port}
+                        onChange={(e) => setPort(e.target.value)}
+                        className="w-full p-2"
+                      />
+                    </div>
                   </div>
-                  <div className="w-full">
-                    <p className="ml-2 font-semibold">Port</p>
-                    <TextField
-                      name="port"
-                      label="e.g. 10"
-                      variant="outlined"
-                      value={port}
-                      onChange={(e) => setPort(e.target.value)}
-                      className="w-full p-2"
-                    />
-                  </div>
-                  <div className="w-full">
-                    <p className="ml-2 font-semibold">User</p>
-                    <TextField
-                      name="user"
-                      label="e.g. 10"
-                      variant="outlined"
-                      value={smtpUser}
-                      onChange={(e) => setSmtpUser(e.target.value)}
-                      className="w-full p-2"
-                    />
-                  </div>
-                  <div className="w-full">
-                    <p className="ml-2 font-semibold">Password</p>
-                    <TextField
-                      name="password"
-                      label="e.g. 10"
-                      variant="outlined"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full p-2"
-                    />
+                  <div className="flex flex-col w-full gap-4 md:flex-row">
+                    <div className="w-full">
+                      <p className="ml-2 font-semibold">User</p>
+                      <TextField
+                        name="user"
+                        label="User Name"
+                        variant="outlined"
+                        value={smtpUser}
+                        onChange={(e) => setSmtpUser(e.target.value)}
+                        className="w-full p-2"
+                      />
+                    </div>
+                    <div className="w-full">
+                      <p className="ml-2 font-semibold">Password</p>
+                      <TextField
+                        name="password"
+                        label="Password"
+                        variant="outlined"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full p-2"
+                      />
+                    </div>
                   </div>
                 </div>
               )}
@@ -496,8 +502,7 @@ const Home = () => {
                   <textarea
                     cols="30"
                     rows="10"
-                    id="email-list"
-                    placeholder="Enter Email List"
+                    placeholder="Text / HTML Content"
                     className="w-full p-2 border-blue-950"
                     style={{ border: "1px solid #ccc" }}
                     value={html}
@@ -537,7 +542,7 @@ const Home = () => {
         </div>
 
         {/* Right Side Email Details*/}
-        <div className="w-full  p-5 overflow-x-hidden lg:h-[1090px] h-0 basis-1/3 MuiCard-root-css relative">
+        <div className="w-full  p-5 overflow-x-hidden lg:h-[1085px] h-0 basis-1/3 MuiCard-root-css relative">
           <h1 className="text-3xl font-bold">Sent Details</h1>
           <div>
             <pre>

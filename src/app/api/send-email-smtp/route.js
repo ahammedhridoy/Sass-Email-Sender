@@ -123,7 +123,7 @@ export async function POST(req) {
           );
 
           await transporter.sendMail({
-            from: `${sender} <${smtp.user}>`,
+            from: `${sender} <${smtpUser ? smtpUser : smtp.user}>`,
             to: currentEmail,
             subject: processedSubject,
             html: processedHtml,
