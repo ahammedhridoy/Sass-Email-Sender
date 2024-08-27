@@ -1,12 +1,17 @@
 "use client";
 import { Button, Checkbox, FormControlLabel, TextField } from "@mui/material";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
 import { styled } from "@mui/material/styles";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import toast, { Toaster } from "react-hot-toast";
+import Accordion from "@mui/material/Accordion";
+import AccordionActions from "@mui/material/AccordionActions";
+import AccordionSummary from "@mui/material/AccordionSummary";
+import AccordionDetails from "@mui/material/AccordionDetails";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
 const VisuallyHiddenInput = styled("input")({
   clip: "rect(0 0 0 0)",
@@ -22,7 +27,7 @@ const VisuallyHiddenInput = styled("input")({
 
 const Home = () => {
   // Credentials and Authorizing
-  const [file, setFile] = useState(null);
+  const [files, setFiles] = useState([]);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   // Sending Emails
@@ -46,47 +51,66 @@ const Home = () => {
   // Sent Details
   const [mailResult, setMailResult] = useState([]);
   const [totalEmailCount, setTotalEmailCount] = useState("");
-  console.log(mailResult);
-
-  const handleFileChange = (e) => {
-    setFile(e.target.files[0]);
-  };
+  //Get From Database
+  const [smtps, setSmtps] = useState([]);
+  console.log(smtps?.smtps);
 
   const handleSMTPCheckboxChange = (e) => {
     setUseCustomSmtp(e.target.checked);
   };
 
-  // Use SMTP
+  const handleFileChange = (e) => {
+    setFiles(Array.from(e.target.files));
+  };
+
+  // Upload SMTP
   const handleUploadSMTP = async () => {
-    if (!file) {
-      toast.error("Please upload a file");
+    if (files.length === 0) {
+      toast.error("Please upload at least one file");
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const fileContent = e.target.result;
-      try {
-        const response = await fetch("/api/smtp/upload", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: fileContent,
-        });
+    for (const file of files) {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const fileContent = e.target.result;
+        try {
+          const response = await fetch("/api/smtp/upload", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: fileContent,
+          });
 
-        const result = await response.json();
-        if (response.ok) {
-          toast.success("File uploaded successfully");
-        } else {
-          toast.error("Error uploading file: " + result.message);
+          const result = await response.json();
+          if (response.ok) {
+            toast.success(`${file.name} uploaded successfully`);
+            setFiles([]);
+          } else {
+            toast.error(`Error uploading ${file.name}: ${result.message}`);
+          }
+        } catch (error) {
+          toast.error(`Error uploading ${file.name}: ${error.message}`);
         }
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  // Fetch SMTP Info
+  useEffect(() => {
+    const fetchSMTPInfo = async () => {
+      try {
+        const response = await fetch("/api/smtp/upload");
+        const data = await response.json();
+        setSmtps(data);
       } catch (error) {
-        setMessage("Error uploading file: " + error.message);
+        console.log(error);
       }
     };
-    reader.readAsText(file);
-  };
+    fetchSMTPInfo();
+  }, []);
 
   // Fetch a random name
   const fetchRandomName = async () => {
@@ -270,6 +294,37 @@ const Home = () => {
         <div className="w-full basis-2/3">
           <Card className="w-full p-5">
             <CardContent>
+              {/* SMTP Information */}
+              <div className="mb-5">
+                <Typography
+                  gutterBottom
+                  variant="h5"
+                  component="div"
+                  className="font-bold"
+                >
+                  SMTP Info
+                </Typography>
+                <Accordion>
+                  <AccordionSummary
+                    expandIcon={<ExpandMoreIcon />}
+                    aria-controls="panel1-content"
+                    id="panel1-header"
+                  >
+                    <p className="font-bold">
+                      Total SMTP: {smtps?.smtps?.length}
+                    </p>
+                  </AccordionSummary>
+                  <div className="h-[100px]  overflow-y-scroll">
+                    {smtps?.smtps?.map((smtp) => {
+                      return (
+                        <p key={smtp.id} className="px-2 py-[5px] font-bold">
+                          {smtp?.user}
+                        </p>
+                      );
+                    })}
+                  </div>
+                </Accordion>
+              </div>
               {/* Upload Credentials and Authorize */}
               <div>
                 <Typography
@@ -293,6 +348,8 @@ const Home = () => {
                       Upload JSON File
                       <VisuallyHiddenInput
                         type="file"
+                        multiple
+                        accept=".json"
                         onChange={handleFileChange}
                       />
                     </Button>

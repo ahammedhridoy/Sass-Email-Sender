@@ -17,6 +17,8 @@ model SMTP {
   content      String?
   currentUsage Int      @default(0)
   createdAt    DateTime @default(now())
+
+  @@unique([host, port, secure, user], name: "user_host_port_secure_unique")
 }
 
 model User {
