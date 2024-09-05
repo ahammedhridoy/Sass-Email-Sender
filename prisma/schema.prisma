@@ -21,6 +21,19 @@ model SMTP {
   @@unique([host, port, secure, user], name: "user_host_port_secure_unique")
 }
 
+model Single {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  host         String
+  port         Int
+  secure       Boolean
+  user         String
+  password     String
+  currentUsage Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  @@unique([host, port, secure, user], name: "user_host_port_secure_unique")
+}
+
 model User {
   id              String   @id @default(auto()) @map("_id") @db.ObjectId
   clerkId         String   @unique

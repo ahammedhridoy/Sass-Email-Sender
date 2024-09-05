@@ -12,8 +12,6 @@ import AccordionSummary from "@mui/material/AccordionSummary";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
-import DialogContent from "@mui/material/DialogContent";
-import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
 
 const VisuallyHiddenInput = styled("input")({
@@ -28,7 +26,7 @@ const VisuallyHiddenInput = styled("input")({
   width: 1,
 });
 
-const SMTPUI = () => {
+const SingleSMTP = () => {
   // Credentials and Authorizing
   const [files, setFiles] = useState([]);
   const [message, setMessage] = useState("");
@@ -60,7 +58,7 @@ const SMTPUI = () => {
   // Delete SMTP
   const handleDeleteSMTP = async () => {
     try {
-      const response = await fetch(`/api/smtp/delete`, {
+      const response = await fetch(`/api/single/upload`, {
         method: "DELETE",
       });
       if (response.ok) {
@@ -85,51 +83,48 @@ const SMTPUI = () => {
     setOpen(false);
   };
 
-  const handleSMTPCheckboxChange = (e) => {
-    setUseCustomSmtp(e.target.checked);
-  };
+  // const handleSMTPCheckboxChange = (e) => {
+  //   setUseCustomSmtp(e.target.checked);
+  // };
 
-  const handleFileChange = (e) => {
-    setFiles(Array.from(e.target.files));
-  };
+  // const handleFileChange = (e) => {
+  //   setFiles(Array.from(e.target.files));
+  // };
 
   // Upload SMTP
   const handleUploadSMTP = async () => {
-    if (files.length === 0) {
-      toast.error("Please upload at least one file");
-      return;
-    }
-
     try {
-      for (const file of files) {
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-          const fileContent = e.target.result;
-          try {
-            const response = await fetch("/api/smtp/upload", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: fileContent,
-            });
+      // Make sure all required fields are provided
+      if (!host || !port || !smtpUser || !password) {
+        console.error("All fields are required!");
+        return;
+      }
 
-            const result = await response.json();
-            if (response.ok) {
-              toast.success(`${file.name} uploaded successfully`);
-              setFiles([]);
-            } else {
-              toast.error(`Error uploading ${file.name}: ${result.message}`);
-            }
-            fetchSMTPInfo();
-          } catch (error) {
-            toast.error(`Error uploading ${file.name}: ${error.message}`);
-          }
-        };
-        reader.readAsText(file);
+      const response = await fetch("/api/single/upload", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          host,
+          port: parseInt(port),
+          smtpUser,
+          password,
+          secure: true,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Error:", errorData.error);
+      } else {
+        const data = await response.json();
+        fetchSMTPInfo();
+        toast.success("SMTP credentials uploaded successfully");
+        console.log("SMTP credentials uploaded:", data);
       }
     } catch (error) {
-      console.log(error);
+      console.error("Upload failed:", error.message);
     }
   };
 
@@ -137,7 +132,7 @@ const SMTPUI = () => {
 
   const fetchSMTPInfo = async () => {
     try {
-      const response = await fetch("/api/smtp/upload");
+      const response = await fetch("/api/single/upload");
       const data = await response.json();
       setSmtps(data);
     } catch (error) {
@@ -252,7 +247,7 @@ const SMTPUI = () => {
           formData.append("attachments", attachment);
         });
 
-        const response = await fetch("/api/send-email-smtp", {
+        const response = await fetch("/api/send-email-single", {
           method: "POST",
           body: formData,
         });
@@ -397,50 +392,69 @@ const SMTPUI = () => {
                 </Accordion>
               </div>
               {/* Upload Credentials and Authorize */}
+
               <div>
-                <Typography
-                  gutterBottom
-                  variant="h5"
-                  component="div"
-                  className="font-bold"
-                >
-                  Upload SMTP
-                </Typography>
-                <div className="flex flex-col w-full gap-4 md:flex-row">
-                  <div>
-                    <Button
-                      component="label"
-                      role={undefined}
-                      variant="contained"
-                      tabIndex={-1}
-                      startIcon={<CloudUploadIcon />}
-                      size="large"
-                    >
-                      Upload JSON File
-                      <VisuallyHiddenInput
-                        type="file"
-                        multiple
-                        accept=".json"
-                        onChange={handleFileChange}
+                <div>
+                  <div className="flex flex-col w-full gap-4 mb-4 md:flex-row">
+                    <div className="w-full">
+                      <p className="ml-2 font-semibold">Host</p>
+                      <TextField
+                        name="host"
+                        label="Host Name"
+                        variant="outlined"
+                        value={host}
+                        onChange={(e) => setHost(e.target.value)}
+                        className="w-full p-2"
                       />
-                    </Button>
+                    </div>
+                    <div className="w-full">
+                      <p className="ml-2 font-semibold">Port</p>
+                      <TextField
+                        name="port"
+                        label="Port Number"
+                        variant="outlined"
+                        value={port}
+                        onChange={(e) => setPort(e.target.value)}
+                        className="w-full p-2"
+                      />
+                    </div>
                   </div>
-                  <div>
+                  <div className="flex flex-col w-full gap-4 md:flex-row">
+                    <div className="w-full">
+                      <p className="ml-2 font-semibold">User</p>
+                      <TextField
+                        name="user"
+                        label="User Name"
+                        variant="outlined"
+                        value={smtpUser}
+                        onChange={(e) => setSmtpUser(e.target.value)}
+                        className="w-full p-2"
+                      />
+                    </div>
+                    <div className="w-full">
+                      <p className="ml-2 font-semibold">Password</p>
+                      <TextField
+                        name="password"
+                        label="Password"
+                        variant="outlined"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full p-2"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-5">
                     <Button
+                      onClick={handleUploadSMTP}
                       variant="contained"
                       size="large"
-                      onClick={handleUploadSMTP}
-                      disabled={loading}
                       sx={{ backgroundColor: "#0A123E" }}
                     >
-                      {loading ? "Uploading..." : "Upload"}
+                      Upload SMTP
                     </Button>
                   </div>
                 </div>
               </div>
-
-              
-              
 
               <div className="mt-5 ml-2">
                 <FormControlLabel
@@ -642,4 +656,4 @@ const SMTPUI = () => {
   );
 };
 
-export default SMTPUI;
+export default SingleSMTP;
