@@ -83,12 +83,14 @@ export async function POST(req) {
         }
 
         const credentials = JSON.parse(user.credentialsPath);
-        const { client_id, client_secret, redirect_uris } = credentials.web;
+        const { client_id, client_secret } = credentials.web;
+
+        const redirect_uris = "http://localhost:3000/api/oauth2/callback";
 
         const oAuth2Client = new google.auth.OAuth2(
           client_id,
           client_secret,
-          redirect_uris[0]
+          redirect_uris
         );
 
         const token = JSON.parse(user.tokenPath);

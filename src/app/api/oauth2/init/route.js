@@ -38,18 +38,14 @@ async function getOAuth2Client(userId) {
     throw new Error("Invalid credentials format: 'web' property is missing");
   }
 
-  const { client_id, client_secret, redirect_uris } = credentials.web;
+  const { client_id, client_secret } = credentials.web;
 
+  const redirect_uris = "http://localhost:3000/api/oauth2/callback";
   // Ensure values are present
-  if (
-    !client_id ||
-    !client_secret ||
-    !redirect_uris ||
-    redirect_uris.length === 0
-  ) {
+  if (!client_id || !client_secret) {
     throw new Error("Invalid credentials format: Missing required fields");
   }
 
   // Create and return the OAuth2 client
-  return new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
+  return new google.auth.OAuth2(client_id, client_secret, redirect_uris);
 }
