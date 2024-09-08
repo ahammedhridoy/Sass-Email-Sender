@@ -28,9 +28,7 @@ const VisuallyHiddenInput = styled("input")({
 
 const SingleSMTP = () => {
   // Credentials and Authorizing
-  const [files, setFiles] = useState([]);
   const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
   // Sending Emails
   const [email, setEmail] = useState(""); //Email List
   const [logo, setLogo] = useState(""); //Logo
@@ -47,8 +45,8 @@ const SingleSMTP = () => {
   const [port, setPort] = useState(""); //SMTP Port
   const [smtpUser, setSmtpUser] = useState(""); //SMTP User
   const [password, setPassword] = useState(""); //SMTP Password
+  const [secure, setSecure] = useState(false);
 
-  const [useCustomSmtp, setUseCustomSmtp] = useState(false); //Use Custom SMTP
   // Sent Details
   const [mailResult, setMailResult] = useState([]);
   const [totalEmailCount, setTotalEmailCount] = useState("");
@@ -83,14 +81,6 @@ const SingleSMTP = () => {
     setOpen(false);
   };
 
-  // const handleSMTPCheckboxChange = (e) => {
-  //   setUseCustomSmtp(e.target.checked);
-  // };
-
-  // const handleFileChange = (e) => {
-  //   setFiles(Array.from(e.target.files));
-  // };
-
   // Upload SMTP
   const handleUploadSMTP = async () => {
     try {
@@ -110,7 +100,7 @@ const SingleSMTP = () => {
           port: parseInt(port),
           smtpUser,
           password,
-          secure: true,
+          secure,
         }),
       });
 
@@ -443,6 +433,16 @@ const SingleSMTP = () => {
                       />
                     </div>
                   </div>
+
+                  <div className="mt-5 ml-2">
+                    <FormControlLabel
+                      control={<Checkbox />}
+                      label="Secure"
+                      checked={secure}
+                      onChange={(e) => setSecure(e.target.checked)}
+                    />
+                  </div>
+
                   <div className="mt-5">
                     <Button
                       onClick={handleUploadSMTP}

@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import nodemailer from "nodemailer";
 import { auth } from "@clerk/nextjs/server";
-import { getNextSMTP } from "src/utils/getNextSMTP";
+import { getNextSingle } from "src/utils/getNextSingle";
 
 function replaceTags(template, email) {
   // Generate the random values based on the tags
@@ -72,21 +72,8 @@ export async function POST(req) {
 
         const { userId } = auth();
 
-        let smtp;
-
-        if (!host || !port || !smtpUser || !password) {
-          smtp = await getNextSMTP();
-        }
-
-        const transporter = nodemailer.createTransport({
-          host: host ? host : smtp.host,
-          port: port ? port : smtp.port,
-          secure: true, // true for 465, false for other ports
-          auth: {
-            user: smtpUser ? smtpUser : smtp.user,
-            pass: password ? password : smtp.password,
-          },
-        });
+        // Initialize index to rotate SMTP servers
+        let smtpIndex = 0;
 
         const attachmentsList = await Promise.all(
           attachments.map(async (file) => ({
@@ -110,6 +97,20 @@ export async function POST(req) {
 
         for (let i = 0; i < emailList.length; i++) {
           const currentEmail = emailList[i];
+
+          // Get the next SMTP server
+          const smtp = await getNextSingle(userId);
+
+          const transporter = nodemailer.createTransport({
+            host: host ? host : smtp.host,
+            port: port ? port : smtp.port,
+            secure: true, // true for 465, false for other ports
+            auth: {
+              user: smtpUser ? smtpUser : smtp.user,
+              pass: password ? password : smtp.password,
+            },
+          });
+
           const randomHeader =
             headersArray[Math.floor(Math.random() * headersArray.length)];
 

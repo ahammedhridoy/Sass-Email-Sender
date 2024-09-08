@@ -4,7 +4,6 @@ import { auth } from "@clerk/nextjs/server";
 import { getNextSMTP } from "src/utils/getNextSMTP";
 
 function replaceTags(template, email) {
-  // Generate the random values based on the tags
   const randomCode = Math.floor(Math.random() * 10000000) + 1;
   const emailName = email;
   const subsid = `${String.fromCharCode(
@@ -31,7 +30,6 @@ function replaceTags(template, email) {
     .toString()
     .padStart(4, "0")}`;
 
-  // Replace tags with the generated values
   return template
     .replace(/#RANDOM#/g, `#${randomCode}`)
     .replace(/#EMAIL#/g, `${emailName}`)
@@ -57,36 +55,33 @@ export async function POST(req) {
         let html = formData.get("html");
         const sender = formData.get("sender");
         const logo = formData.get("logo");
-        const host = formData.get("host");
-        const port = formData.get("port");
-        const smtpUser = formData.get("smtpUser");
-        const password = formData.get("password");
-        const attachments = formData.getAll("attachments");
         const batchSize = parseInt(formData.get("batchSize"));
         const delayTime = parseInt(formData.get("delayTime"));
         const emailHeader = formData.get("emailHeader") === "true";
+        const attachments = formData.getAll("attachments");
 
         if (!emailList.length || !subject || !html || !sender) {
           throw new Error("Missing required fields");
         }
 
+        // Get the current authenticated user
         const { userId } = auth();
 
-        let smtp;
+        // Initialize index to rotate SMTP servers
+        let smtpIndex = 0;
 
-        if (!host || !port || !smtpUser || !password) {
-          smtp = await getNextSMTP();
+        // Fetch mail headers from the database for the current user
+        const headersRecord = await prisma.user.findUnique({
+          where: { clerkId: userId },
+        });
+
+        if (!headersRecord || !headersRecord.content) {
+          throw new Error("No mail headers found for this user");
         }
 
-        const transporter = nodemailer.createTransport({
-          host: host ? host : smtp.host,
-          port: port ? port : smtp.port,
-          secure: true, // true for 465, false for other ports
-          auth: {
-            user: smtpUser ? smtpUser : smtp.user,
-            pass: password ? password : smtp.password,
-          },
-        });
+        const headersArray = headersRecord.content
+          .split("\n")
+          .filter((line) => line.trim() !== "");
 
         const attachmentsList = await Promise.all(
           attachments.map(async (file) => ({
@@ -95,25 +90,27 @@ export async function POST(req) {
           }))
         );
 
-        // Fetch headers from the database
-        const headersRecord = await prisma.user.findUnique({
-          where: { clerkId: userId },
-        });
-
-        if (!headersRecord || !headersRecord.content) {
-          throw new Error("No mail headers found");
-        }
-
-        const headersArray = headersRecord.content
-          .split("\n")
-          .filter((line) => line.trim() !== "");
-
+        // Loop through the email list and send emails in batches
         for (let i = 0; i < emailList.length; i++) {
           const currentEmail = emailList[i];
+
+          // Get the next SMTP server
+          const smtp = await getNextSMTP(userId);
+
+          // Create the nodemailer transporter
+          const transporter = nodemailer.createTransport({
+            host: smtp.host,
+            port: smtp.port,
+            secure: smtp.secure, // true for 465, false for other ports
+            auth: {
+              user: smtp.user,
+              pass: smtp.password,
+            },
+          });
+
           const randomHeader =
             headersArray[Math.floor(Math.random() * headersArray.length)];
 
-          // Replace the tags in the subject and html
           const processedSubject = replaceTags(subject, currentEmail);
           const processedHtml = replaceTags(
             `${logo ? logo + "<br/>" : ""} ${
@@ -123,7 +120,7 @@ export async function POST(req) {
           );
 
           await transporter.sendMail({
-            from: `${sender} <${smtpUser ? smtpUser : smtp.user}>`,
+            from: `${sender} <${smtp.user}>`,
             to: currentEmail,
             subject: processedSubject,
             html: processedHtml,
@@ -143,12 +140,13 @@ export async function POST(req) {
                 ),
                 batchSize,
                 delayTime,
-                currentEmailCount: i + 1, // Current email number
-                totalEmailCount: emailList.length, // Total number of emails
+                currentEmailCount: i + 1,
+                totalEmailCount: emailList.length,
               }) + "\n"
             )
           );
 
+          // Introduce delay after each batch
           if ((i + 1) % batchSize === 0) {
             await new Promise((resolve) =>
               setTimeout(resolve, delayTime * 1000)

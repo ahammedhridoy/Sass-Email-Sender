@@ -1,9 +1,18 @@
 import { prisma } from "@/lib/prisma";
+import { currentUser } from "@clerk/nextjs/server"; // Assuming you're using Clerk's nextjs package for authentication
 
 // POST /api/smtp/upload
 export async function POST(req) {
   try {
     const smtpList = await req.json();
+    const user = await currentUser();
+
+    if (!user || !user.id) {
+      return new Response(
+        JSON.stringify({ error: "User not authenticated." }),
+        { status: 401 }
+      );
+    }
 
     // Validate that the file contains an array of SMTP credentials
     if (!Array.isArray(smtpList)) {
@@ -18,16 +27,16 @@ export async function POST(req) {
     // Process each SMTP credential in the array
     const processedSmtps = await Promise.all(
       smtpList.map(async (smtp) => {
-        const { host, port, secure, user, password } = smtp;
+        const { host, port, secure, user: smtpUser, password } = smtp;
 
-        // Upsert the SMTP credential in the database
+        // Upsert the SMTP credential in the database, associated with the current user
         return await prisma.sMTP.upsert({
           where: {
             user_host_port_secure_unique: {
               host,
               port,
               secure,
-              user,
+              user: smtpUser,
             },
           },
           update: {
@@ -39,9 +48,10 @@ export async function POST(req) {
             host,
             port,
             secure,
-            user,
+            user: smtpUser,
             password,
             currentUsage: 0,
+            clerkUserId: user.id, // Associate with the authenticated Clerk user
           },
         });
       })
@@ -65,9 +75,27 @@ export async function POST(req) {
 // GET /api/smtp/upload
 export async function GET() {
   try {
-    const smtps = await prisma.sMTP.findMany();
+    const user = await currentUser(); // Get the currently authenticated Clerk user
+
+    if (!user || !user.id) {
+      return new Response(
+        JSON.stringify({ error: "User not authenticated." }),
+        { status: 401 }
+      );
+    }
+
+    // Find all SMTP records associated with the authenticated user
+    const smtps = await prisma.sMTP.findMany({
+      where: {
+        clerkUserId: user.id,
+      },
+    });
+
     return new Response(JSON.stringify({ smtps }), { status: 200 });
   } catch (error) {
-    console.log(error);
+    console.log("Error fetching SMTP records:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+    });
   }
 }

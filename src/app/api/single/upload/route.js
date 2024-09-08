@@ -1,10 +1,21 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { currentUser, getAuth } from "@clerk/nextjs/server";
 
 // POST /api/single/upload
 export async function POST(req) {
   try {
-    const { host, port, smtpUser, password, secure = true } = await req.json();
+    const { host, port, smtpUser, password, secure } = await req.json();
+    console.log(secure);
+
+    const user = await currentUser();
+
+    if (!user || !user.id) {
+      return new Response(
+        JSON.stringify({ error: "User not authenticated." }),
+        { status: 401 }
+      );
+    }
 
     // Validate the input data
     if (!host || !port || !smtpUser || !password) {
@@ -35,6 +46,7 @@ export async function POST(req) {
         secure,
         user: smtpUser,
         password,
+        clerkUserId: user.id,
       },
     });
 
@@ -50,7 +62,21 @@ export async function POST(req) {
 // GET /api/single/upload
 export async function GET() {
   try {
-    const smtps = await prisma.single.findMany();
+    const user = await currentUser(); // Get the currently authenticated Clerk user
+
+    if (!user || !user.id) {
+      return new Response(
+        JSON.stringify({ error: "User not authenticated." }),
+        { status: 401 }
+      );
+    }
+
+    // Find all SMTP records associated with the authenticated user
+    const smtps = await prisma.single.findMany({
+      where: {
+        clerkUserId: user.id,
+      },
+    });
     return new Response(JSON.stringify({ smtps }), { status: 200 });
   } catch (error) {
     console.log(error);
@@ -60,16 +86,36 @@ export async function GET() {
 // DELETE /api/single/upload
 export async function DELETE(req) {
   try {
-    const smtpCount = await prisma.single.count();
+    // Get the current authenticated user's Clerk ID
+    const { userId } = getAuth(req);
+
+    if (!userId) {
+      return NextResponse.json(
+        { message: "Unauthorized: User not authenticated" },
+        { status: 401 }
+      );
+    }
+
+    // Count SMTP records for the authenticated user
+    const smtpCount = await prisma.single.count({
+      where: {
+        clerkUserId: userId, // Only count SMTP records for this user
+      },
+    });
 
     if (smtpCount === 0) {
       return NextResponse.json(
-        { message: "SMTP files not found" },
+        { message: "SMTP files not found for this user" },
         { status: 404 }
       );
     }
 
-    await prisma.single.deleteMany({});
+    // Delete SMTP records for the authenticated user
+    await prisma.single.deleteMany({
+      where: {
+        clerkUserId: userId, // Only delete SMTP records for this user
+      },
+    });
     return NextResponse.json(
       { message: "SMTP files deleted successfully" },
       { status: 200 }

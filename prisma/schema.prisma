@@ -18,6 +18,9 @@ model SMTP {
   currentUsage Int      @default(0)
   createdAt    DateTime @default(now())
 
+  clerkUserId String // Clerk ID, which will match User.clerkId
+  clerkUser   User   @relation(fields: [clerkUserId], references: [clerkId])
+
   @@unique([host, port, secure, user], name: "user_host_port_secure_unique")
 }
 
@@ -31,16 +34,22 @@ model Single {
   currentUsage Int      @default(0)
   createdAt    DateTime @default(now())
 
+  clerkUserId String // Clerk ID, which will match User.clerkId
+  clerkUser   User   @relation(fields: [clerkUserId], references: [clerkId])
+
   @@unique([host, port, secure, user], name: "user_host_port_secure_unique")
 }
 
 model User {
-  id              String   @id @default(auto()) @map("_id") @db.ObjectId
-  clerkId         String   @unique
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId // Keep this as MongoDB ObjectId
+  clerkId         String   @unique // This field will be used for relationships
   credentialsPath Json?
   tokenPath       String?
   username        String?
   content         String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+
+  smtps   SMTP[]
+  singles Single[]
 }
