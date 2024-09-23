@@ -26,9 +26,7 @@ export async function GET(req) {
     // Parse the credentials directly from the database
     const credentials = JSON.parse(user.credentialsPath);
 
-    const { client_id, client_secret } = credentials.web;
-
-    const redirect_uris = "http://localhost:3000/api/oauth2/callback";
+    const { client_id, client_secret, redirect_uris } = credentials.web;
 
     // Create OAuth2 client with the credentials
     const oAuth2Client = new google.auth.OAuth2(

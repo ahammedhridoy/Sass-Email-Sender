@@ -57,7 +57,7 @@ export async function POST(req) {
         let html = formData.get("html");
         const sender = formData.get("sender");
         const username = formData.get("username");
-        const logo = formData.get("logo");
+        // const logo = formData.get("logo");
         const attachments = formData.getAll("attachments");
         const batchSize = parseInt(formData.get("batchSize"));
         const delayTime = parseInt(formData.get("delayTime"));
@@ -83,9 +83,7 @@ export async function POST(req) {
         }
 
         const credentials = JSON.parse(user.credentialsPath);
-        const { client_id, client_secret } = credentials.web;
-
-        const redirect_uris = "http://localhost:3000/api/oauth2/callback";
+        const { client_id, client_secret, redirect_uris } = credentials.web;
 
         const oAuth2Client = new google.auth.OAuth2(
           client_id,
@@ -140,9 +138,7 @@ export async function POST(req) {
           // Replace the tags in the subject and html
           const processedSubject = replaceTags(subject, currentEmail);
           const processedHtml = replaceTags(
-            `${logo ? logo + "<br/>" : ""} ${
-              emailHeader ? randomHeader + "<br/>" : ""
-            }${html}`,
+            `${emailHeader ? randomHeader + "<br/>" : ""}${html}`,
             currentEmail
           );
 

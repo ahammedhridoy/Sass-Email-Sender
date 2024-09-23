@@ -192,7 +192,7 @@ const Home = () => {
         formData.append("batchSize", batchSize);
         formData.append("delayTime", delayTime);
         formData.append("emailHeader", emailHeader);
-        formData.append("logo", logo);
+        // formData.append("logo", logo);
         formData.append("currentEmailCount", i + 1);
         formData.append("totalEmailCount", totalEmails);
 
@@ -393,7 +393,7 @@ const Home = () => {
               </div>
 
               {/* Logo */}
-              <div className="w-full my-2">
+              {/* <div className="w-full my-2">
                 <p className="font-semibold">Logo Box</p>
                 <textarea
                   placeholder="Enter Logo HTML"
@@ -402,7 +402,7 @@ const Home = () => {
                   value={logo}
                   onChange={(e) => setLogo(e.target.value)}
                 ></textarea>
-              </div>
+              </div> */}
 
               {/* Random Email Header */}
               <div className="">

@@ -38,9 +38,8 @@ async function getOAuth2Client(userId) {
     throw new Error("Invalid credentials format: 'web' property is missing");
   }
 
-  const { client_id, client_secret } = credentials.web;
+  const { client_id, client_secret, redirect_uris } = credentials.web;
 
-  const redirect_uris = "http://localhost:3000/api/oauth2/callback";
   // Ensure values are present
   if (!client_id || !client_secret) {
     throw new Error("Invalid credentials format: Missing required fields");

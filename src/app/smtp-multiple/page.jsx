@@ -3,9 +3,9 @@ import { useUser } from "@clerk/nextjs";
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Loader from "src/components/Loader/Loader";
-import SingleSMTP from "src/components/SingleSmtp/SingleSmtp";
+import SMTPUI from "src/components/SMTPUI/SMTPUI";
 
-const Single = () => {
+const SMTP = () => {
   const { user, isLoaded } = useUser();
   const [error, setError] = useState(null);
   const router = useRouter();
@@ -49,12 +49,13 @@ const Single = () => {
       </div>
     ); // Show loading indicator while checking authentication
   }
+
   return (
     <div className="min-h-[90vh] flex items-center justify-center">
       {error && <p className="text-red-500">{error}</p>}
-      <SingleSMTP />
+      <SMTPUI />
     </div>
   );
 };
 
-export default Single;
+export default SMTP;

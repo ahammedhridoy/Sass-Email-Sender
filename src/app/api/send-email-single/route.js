@@ -56,7 +56,7 @@ export async function POST(req) {
         let subject = formData.get("subject");
         let html = formData.get("html");
         const sender = formData.get("sender");
-        const logo = formData.get("logo");
+        // const logo = formData.get("logo");
         const host = formData.get("host");
         const port = formData.get("port");
         const smtpUser = formData.get("smtpUser");
@@ -73,7 +73,6 @@ export async function POST(req) {
         const { userId } = auth();
 
         // Initialize index to rotate SMTP servers
-        let smtpIndex = 0;
 
         const attachmentsList = await Promise.all(
           attachments.map(async (file) => ({
@@ -117,9 +116,7 @@ export async function POST(req) {
           // Replace the tags in the subject and html
           const processedSubject = replaceTags(subject, currentEmail);
           const processedHtml = replaceTags(
-            `${logo ? logo + "<br/>" : ""} ${
-              emailHeader ? randomHeader + "<br/>" : ""
-            }${html}`,
+            `${emailHeader ? randomHeader + "<br/>" : ""}${html}`,
             currentEmail
           );
 
@@ -164,6 +161,7 @@ export async function POST(req) {
           encoder.encode(
             JSON.stringify({
               error: error.message,
+              message: `Failed to send email`,
             }) + "\n"
           )
         );

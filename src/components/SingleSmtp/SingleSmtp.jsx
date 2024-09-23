@@ -31,7 +31,7 @@ const SingleSMTP = () => {
   const [message, setMessage] = useState("");
   // Sending Emails
   const [email, setEmail] = useState(""); //Email List
-  const [logo, setLogo] = useState(""); //Logo
+  // const [logo, setLogo] = useState("");
   const [subject, setSubject] = useState(""); //Subject
   const [html, setHtml] = useState(""); //HTML
   const [attachments, setAttachments] = useState([]);
@@ -49,9 +49,12 @@ const SingleSMTP = () => {
 
   // Sent Details
   const [mailResult, setMailResult] = useState([]);
+  const [error, setError] = useState("");
   const [totalEmailCount, setTotalEmailCount] = useState("");
   //Get From Database
   const [smtps, setSmtps] = useState([]);
+
+  console.log(mailResult);
 
   // Delete SMTP
   const handleDeleteSMTP = async () => {
@@ -111,6 +114,11 @@ const SingleSMTP = () => {
         const data = await response.json();
         fetchSMTPInfo();
         toast.success("SMTP credentials uploaded successfully");
+        setHost("");
+        setPort("");
+        setSmtpUser("");
+        setPassword("");
+        setSecure(false);
         console.log("SMTP credentials uploaded:", data);
       }
     } catch (error) {
@@ -225,7 +233,7 @@ const SingleSMTP = () => {
         formData.append("batchSize", batchSize);
         formData.append("delayTime", delayTime);
         formData.append("emailHeader", emailHeader);
-        formData.append("logo", logo);
+        // formData.append("logo", logo);
         formData.append("currentEmailCount", i + 1);
         formData.append("totalEmailCount", totalEmails);
         formData.append("host", host);
@@ -302,6 +310,8 @@ const SingleSMTP = () => {
       }
     } catch (error) {
       setMessage("Error sending email: " + error.message);
+      setError(message);
+      console.log(error);
     } finally {
       setSendLoading(false);
     }
@@ -521,7 +531,7 @@ const SingleSMTP = () => {
               </div>
 
               {/* Logo */}
-              <div className="w-full my-2">
+              {/* <div className="w-full my-2">
                 <p className="font-semibold">Logo Box</p>
                 <textarea
                   placeholder="Enter Logo HTML"
@@ -530,7 +540,7 @@ const SingleSMTP = () => {
                   value={logo}
                   onChange={(e) => setLogo(e.target.value)}
                 ></textarea>
-              </div>
+              </div> */}
 
               {/* Random Email Header */}
               <div className="">
@@ -634,10 +644,20 @@ const SingleSMTP = () => {
                 [...mailResult].reverse().map((item, index) => (
                   <div key={index} className="flex flex-col gap-3 ">
                     <div className="p-2 my-4 border-2 border-blue-950">
-                      <p className="font-semibold text-green-600">
-                        {item?.message}
-                      </p>
-                      <p className="font-semibold ">To: {item?.to}</p>
+                      {item.message === "Failed to send email" ? (
+                        <>
+                          <p className="font-semibold text-red-600">
+                            {item?.message}
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="font-semibold text-green-600">
+                            {item?.message}
+                          </p>
+                          <p className="font-semibold ">To: {item?.to}</p>
+                        </>
+                      )}
                       <p className="absolute top-[-40px] right-5 flex justify-center gap-2 items-center bg-blue-950 text-white px-3 py-1 rounded">
                         <span className="text-2xl font-bold">{index + 1}</span>
                         {"/"}
