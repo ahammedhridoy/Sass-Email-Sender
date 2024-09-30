@@ -54,7 +54,7 @@ const SingleSMTP = () => {
   //Get From Database
   const [smtps, setSmtps] = useState([]);
 
-  console.log(mailResult);
+  console.log(smtps);
 
   // Delete SMTP
   const handleDeleteSMTP = async () => {
@@ -130,13 +130,14 @@ const SingleSMTP = () => {
 
   const fetchSMTPInfo = async () => {
     try {
-      const response = await fetch("/api/single/upload");
+      const response = await fetch("/api/single/upload", { method: "GET" });
       const data = await response.json();
-      setSmtps(data);
+      setSmtps(data?.smtps);
     } catch (error) {
       console.log(error);
     }
   };
+
   useEffect(() => {
     fetchSMTPInfo();
   }, []);
@@ -376,12 +377,10 @@ const SingleSMTP = () => {
                     aria-controls="panel1-content"
                     id="panel1-header"
                   >
-                    <p className="font-bold">
-                      Total SMTP: {smtps?.smtps?.length}
-                    </p>
+                    <p className="font-bold">Total SMTP: {smtps?.length}</p>
                   </AccordionSummary>
                   <div className="h-[100px]  overflow-y-scroll">
-                    {smtps?.smtps?.map((smtp) => {
+                    {smtps?.map((smtp) => {
                       return (
                         <p key={smtp.id} className="px-2 py-[5px] font-bold">
                           {smtp?.user}
