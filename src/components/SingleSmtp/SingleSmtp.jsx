@@ -13,6 +13,9 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogTitle from "@mui/material/DialogTitle";
+import DoneIcon from "@mui/icons-material/Done";
+import SendIcon from "@mui/icons-material/Send";
+import StopCircleIcon from "@mui/icons-material/StopCircle";
 
 const VisuallyHiddenInput = styled("input")({
   clip: "rect(0 0 0 0)",
@@ -321,30 +324,208 @@ const SingleSMTP = () => {
   return (
     <div className="container">
       <Toaster position="top-center" reverseOrder={false} />
-      <div className="flex flex-col w-full gap-4 my-5 lg:flex-row">
+
+      <div className="flex flex-col w-full gap-4 my-10 lg:flex-row">
         {/* Left Side */}
-        <div className="w-full basis-2/3">
-          <Card className="w-full p-5">
-            <CardContent>
-              {/* SMTP Information */}
-              <div className="mb-5">
-                <Typography
-                  gutterBottom
-                  variant="h5"
-                  component="div"
-                  className="font-bold"
+        <div className="w-full basis-3/4">
+          <h1 className="mb-4 text-3xl font-bold text-white border-b-2 border-b-[var(--green-clr)] pb-2">
+            SMTP Configuration
+          </h1>
+          {/* Top Section */}
+          <div className="flex justify-between gap-4 mb-4">
+            <div className="w-full">
+              <p className="font-semibold text-right text-white">Host</p>
+              <input
+                type="text"
+                id="host"
+                placeholder="Host"
+                className="w-full inputCss"
+                value={host}
+                onChange={(e) => setHost(e.target.value)}
+              />
+            </div>
+
+            <div className="w-full">
+              <p className="font-semibold text-right text-white">User</p>
+              <input
+                type="text"
+                id="user"
+                placeholder="User"
+                className="w-full inputCss"
+                value={smtpUser}
+                onChange={(e) => setSmtpUser(e.target.value)}
+              />
+            </div>
+
+            <div className="w-full">
+              <p className="font-semibold text-right text-white">Password</p>
+              <input
+                type="password"
+                id="password"
+                placeholder="Password"
+                className="w-full inputCss"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-end justify-between gap-4 mb-4">
+            <div className="w-full">
+              <p className="font-semibold text-right text-white">Port</p>
+              <input
+                type="text"
+                id="port"
+                placeholder="Port"
+                className="w-full inputCss"
+                value={port}
+                onChange={(e) => setPort(e.target.value)}
+              />
+            </div>
+
+            <div className="flex items-center justify-between w-full gap-2">
+              <div className="flex items-center justify-center gap-2">
+                <p className="font-semibold text-white">SSL</p>
+                <Checkbox
+                  className="text-white "
+                  checked={secure}
+                  onChange={(e) => setSecure(e.target.checked)}
+                />
+              </div>
+              <Button
+                variant="contained"
+                className="font-semibold text-black addSMTPBtn hover:text-white hover:bg-[var(--green-clr)]"
+                onClick={handleUploadSMTP}
+              >
+                Add SMTP
+              </Button>
+            </div>
+          </div>
+
+          <div className="mt-5">
+            <h1 className="mb-4 text-3xl font-bold text-white border-b-2 border-b-[var(--green-clr)] pb-2">
+              Email Details
+            </h1>
+          </div>
+          {/* Middle Section */}
+          <div className="flex items-end justify-between gap-4 mb-4">
+            <div className="w-full">
+              <p className="font-semibold text-right text-white">Sender Name</p>
+              <input
+                type="text"
+                id="sender-name"
+                placeholder="Sender Name"
+                className="w-full inputCss"
+                value={sender}
+                onChange={(e) => setSender(e.target.value)}
+                disabled={random}
+              />
+            </div>
+
+            <div className="flex items-center justify-between w-full gap-2">
+              <div className="flex items-center justify-center gap-2">
+                <p className="font-semibold text-white">Dynamic Sender</p>
+                <Checkbox
+                  className="text-white"
+                  checked={random}
+                  onChange={(e) => setRandom(e.target.checked)}
+                />
+              </div>
+              <Button
+                variant="contained"
+                className="font-semibold text-white testSMTPBtn hover:text-black hover:bg-[var(--gray-clr)]"
+              >
+                Test SMTP
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex justify-between gap-4 mb-4">
+            <div className="w-full">
+              <p className="font-semibold text-right text-white">Subject</p>
+              <input
+                type="text"
+                id="subject"
+                placeholder="Subject e.g Invoice"
+                className="w-full inputCss"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+              />
+            </div>
+
+            <div className="w-full">
+              <p className="font-semibold text-right text-white">Batch Size</p>
+              <input
+                type="text"
+                id="batch-size"
+                placeholder="Batch Size e.g 10"
+                className="w-full inputCss"
+                value={batchSize}
+                onChange={(e) => setBatchSize(parseInt(e.target.value))}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between w-full gap-2">
+            <div className="flex items-center justify-center gap-2">
+              <p className="font-semibold text-white">Random Email Header</p>
+              <Checkbox
+                className="text-white"
+                checked={emailHeader}
+                onChange={(e) => setEmailHeader(e.target.checked)}
+              />
+            </div>
+            <div>
+              <p className="font-semibold text-right text-white">
+                Upload Header File
+              </p>
+              <Button
+                component="label"
+                variant="contained"
+                role={undefined}
+                tabIndex={-1}
+                startIcon={<CloudUploadIcon />}
+                size="large"
+                className="bg-[var(--gray-clr)] text-black hover:bg-[var(--green-clr)]"
+              >
+                Upload Text File
+                <VisuallyHiddenInput
+                  type="file"
+                  onChange={handleTextFileChange}
+                />
+              </Button>
+            </div>
+          </div>
+
+          {/* Bottom Section */}
+          <div className="flex justify-between gap-4 mt-5 mb-4">
+            <div className="w-full">
+              <p className="font-semibold text-right text-white">SMTP LIST</p>
+
+              <div
+                id="smtp-list"
+                className="w-full h-[506px] inputCss"
+                readOnly
+              >
+                <p className="font-bold">Total SMTP: {smtps?.length}</p>
+                {smtps?.map((smtp, index) => {
+                  return (
+                    <p key={smtp.id} className="px-2 py-[5px] font-bold">
+                      {index + 1}. {smtp?.user}
+                    </p>
+                  );
+                })}
+              </div>
+
+              <div className="w-full mt-5">
+                <Button
+                  variant="contained"
+                  size="large"
+                  color="error"
+                  onClick={handleClickOpen}
                 >
-                  SMTP Info{" "}
-                  <Button
-                    variant="contained"
-                    size="small"
-                    color="error"
-                    onClick={handleClickOpen}
-                  >
-                    Delete All SMTP
-                  </Button>
-                </Typography>
-                {/* Delete All SMTP */}
+                  Delete All SMTP
+                </Button>
                 <>
                   <Dialog
                     open={open}
@@ -371,303 +552,212 @@ const SingleSMTP = () => {
                     </DialogActions>
                   </Dialog>
                 </>
-                <Accordion>
-                  <AccordionSummary
-                    expandIcon={<ExpandMoreIcon />}
-                    aria-controls="panel1-content"
-                    id="panel1-header"
-                  >
-                    <p className="font-bold">Total SMTP: {smtps?.length}</p>
-                  </AccordionSummary>
-                  <div className="h-[100px]  overflow-y-scroll">
-                    {smtps?.map((smtp) => {
-                      return (
-                        <p key={smtp.id} className="px-2 py-[5px] font-bold">
-                          {smtp?.user}
-                        </p>
-                      );
-                    })}
-                  </div>
-                </Accordion>
               </div>
-              {/* Upload Credentials and Authorize */}
+            </div>
+
+            <div className="w-full">
+              <div>
+                <p className="font-semibold text-right text-white">Recepient</p>
+                <textarea
+                  name="textarea"
+                  id="recepient"
+                  rows="17"
+                  className="w-full inputCss"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                ></textarea>
+              </div>
 
               <div>
-                <div>
-                  <div className="flex flex-col w-full gap-4 mb-4 md:flex-row">
-                    <div className="w-full">
-                      <p className="ml-2 font-semibold">Host</p>
-                      <TextField
-                        name="host"
-                        label="Host Name"
-                        variant="outlined"
-                        value={host}
-                        onChange={(e) => setHost(e.target.value)}
-                        className="w-full p-2"
-                      />
-                    </div>
-                    <div className="w-full">
-                      <p className="ml-2 font-semibold">Port</p>
-                      <TextField
-                        name="port"
-                        label="Port Number"
-                        variant="outlined"
-                        value={port}
-                        onChange={(e) => setPort(e.target.value)}
-                        className="w-full p-2"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex flex-col w-full gap-4 md:flex-row">
-                    <div className="w-full">
-                      <p className="ml-2 font-semibold">User</p>
-                      <TextField
-                        name="user"
-                        label="User Name"
-                        variant="outlined"
-                        value={smtpUser}
-                        onChange={(e) => setSmtpUser(e.target.value)}
-                        className="w-full p-2"
-                      />
-                    </div>
-                    <div className="w-full">
-                      <p className="ml-2 font-semibold">Password</p>
-                      <TextField
-                        name="password"
-                        label="Password"
-                        variant="outlined"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="w-full p-2"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="mt-5 ml-2">
-                    <FormControlLabel
-                      control={<Checkbox />}
-                      label="Secure"
-                      checked={secure}
-                      onChange={(e) => setSecure(e.target.checked)}
-                    />
-                  </div>
-
-                  <div className="mt-5">
-                    <Button
-                      onClick={handleUploadSMTP}
-                      variant="contained"
-                      size="large"
-                      sx={{ backgroundColor: "#0A123E" }}
-                    >
-                      Upload SMTP
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-5 ml-2">
-                <FormControlLabel
-                  control={<Checkbox />}
-                  label="Random Name"
-                  checked={random}
-                  onChange={(e) => setRandom(e.target.checked)}
+                <p className="font-semibold text-right text-white">
+                  Delay Time
+                </p>
+                <input
+                  type="text"
+                  id="delay-time"
+                  placeholder="Delay Time (in seconds) e.g 5"
+                  className="w-full inputCss"
+                  value={delayTime}
+                  onChange={(e) => setDelayTime(parseInt(e.target.value))}
                 />
               </div>
+            </div>
 
-              <div className="flex flex-col justify-between w-full gap-4 lg:flex-row">
-                <div className="w-full">
-                  <div className="flex flex-col w-full gap-4 lg:items-center md:flex-row">
-                    <div className="w-full">
-                      <p className="ml-2 font-semibold">Sender </p>
-                      <TextField
-                        id="sender"
-                        label="Sender Name"
-                        variant="outlined"
-                        value={sender}
-                        onChange={(e) => setSender(e.target.value)}
-                        className="w-full p-2 "
-                        disabled={random}
-                      />
-                    </div>
-                    <div className="w-full">
-                      <p className="ml-2 font-semibold">Break Time</p>
-                      <TextField
-                        id="break-time"
-                        label="Delay Time (in seconds) e.g. 5"
-                        variant="outlined"
-                        value={delayTime}
-                        onChange={(e) => setDelayTime(parseInt(e.target.value))}
-                        className="w-full p-2 "
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col justify-between gap-4 mt-4 md:flex-row">
-                    <div className="w-full">
-                      <p className="ml-2 font-semibold">Subject</p>
-                      <TextField
-                        id="subject"
-                        label="e.g. Invoice"
-                        variant="outlined"
-                        value={subject}
-                        onChange={(e) => setSubject(e.target.value)}
-                        className="w-full p-2"
-                      />
-                    </div>
-                    <div className="w-full">
-                      <p className="ml-2 font-semibold">Email Batch Size</p>
-                      <TextField
-                        id="batch-size"
-                        label="e.g. 10"
-                        variant="outlined"
-                        value={batchSize}
-                        onChange={(e) => setBatchSize(parseInt(e.target.value))}
-                        className="w-full p-2"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Logo */}
-              {/* <div className="w-full my-2">
-                <p className="font-semibold">Logo Box</p>
+            <div className="w-full">
+              <div>
+                <p className="font-semibold text-right text-white">HTML Body</p>
                 <textarea
-                  placeholder="Enter Logo HTML"
-                  className="w-full p-2 border-blue-950"
-                  style={{ border: "1px solid #ccc" }}
-                  value={logo}
-                  onChange={(e) => setLogo(e.target.value)}
+                  name="textarea"
+                  id="html-body"
+                  rows="17"
+                  className="w-full inputCss"
+                  value={html}
+                  onChange={(e) => setHtml(e.target.value)}
                 ></textarea>
-              </div> */}
+              </div>
 
-              {/* Random Email Header */}
-              <div className="">
-                <div className="my-2">
-                  <FormControlLabel
-                    control={<Checkbox />}
-                    label="Random Email Header"
-                    checked={emailHeader}
-                    onChange={(e) => setEmailHeader(e.target.checked)}
+              <div className="flex flex-col">
+                <p className="font-semibold text-right text-white">
+                  Attachment File
+                </p>
+                <Button
+                  component="label"
+                  variant="contained"
+                  role={undefined}
+                  tabIndex={-1}
+                  startIcon={<CloudUploadIcon />}
+                  size="large"
+                  className="bg-[var(--gray-clr)] text-black hover:bg-[var(--green-clr)]"
+                >
+                  Upload Attachments
+                  <VisuallyHiddenInput
+                    type="file"
+                    multiple
+                    onChange={handleAttachmentsChange}
                   />
-                </div>
-
-                <div className="w-full">
-                  <div className="mb-4">
-                    <p className="font-semibold">Random Email Header </p>
-                    <Button
-                      component="label"
-                      variant="contained"
-                      role={undefined}
-                      tabIndex={-1}
-                      startIcon={<CloudUploadIcon />}
-                      size="large"
-                    >
-                      Upload Text File
-                      <VisuallyHiddenInput
-                        type="file"
-                        onChange={handleTextFileChange}
-                      />
-                    </Button>
-                  </div>
-                </div>
+                </Button>
               </div>
-
-              {/* Email List & Send Email */}
-              <div className="flex flex-col gap-4 mt-5 lg:flex-row">
-                {/* Email List */}
-                <div className="w-full">
-                  <p className="font-semibold">Email List</p>
-                  <textarea
-                    cols="30"
-                    rows="10"
-                    id="email-list"
-                    placeholder="Enter Email List"
-                    className="w-full p-2 border-blue-950"
-                    style={{ border: "1px solid #ccc" }}
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  ></textarea>
-                </div>
-                {/* Send Email */}
-                <div className="w-full">
-                  <p className="font-semibold">Text / HTML Content</p>
-                  <textarea
-                    cols="30"
-                    rows="10"
-                    placeholder="Text / HTML Content"
-                    className="w-full p-2 border-blue-950"
-                    style={{ border: "1px solid #ccc" }}
-                    value={html}
-                    onChange={(e) => setHtml(e.target.value)}
-                  ></textarea>
-
-                  <div className="flex flex-col justify-between gap-4 mt-5 md:flex-row">
-                    <Button
-                      component="label"
-                      role={undefined}
-                      variant="contained"
-                      tabIndex={-1}
-                      startIcon={<CloudUploadIcon />}
-                      size="large"
-                    >
-                      Upload Attachment
-                      <VisuallyHiddenInput
-                        type="file"
-                        multiple
-                        onChange={handleAttachmentsChange}
-                      />
-                    </Button>
-                    <Button
-                      onClick={handleSendEmail}
-                      variant="contained"
-                      disabled={sendLoading}
-                      size="large"
-                      sx={{ backgroundColor: "#0A123E" }}
-                    >
-                      {sendLoading ? "Sending..." : "Send Email"}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
 
         {/* Right Side Email Details*/}
-        <div className="w-full  p-5 overflow-x-hidden lg:h-[1085px] h-0 basis-1/3 MuiCard-root-css relative">
-          <h1 className="text-3xl font-bold">Sent Details</h1>
+        <div className="w-full px-2 overflow-x-hidden basis-1/4">
           <div>
-            <pre>
-              {mailResult &&
-                [...mailResult].reverse().map((item, index) => (
-                  <div key={index} className="flex flex-col gap-3 ">
-                    <div className="p-2 my-4 border-2 border-blue-950">
-                      {item.message === "Failed to send email" ? (
-                        <>
-                          <p className="font-semibold text-red-600">
-                            {item?.message}
-                          </p>
-                        </>
-                      ) : (
-                        <>
-                          <p className="font-semibold text-green-600">
-                            {item?.message}
-                          </p>
-                          <p className="font-semibold ">To: {item?.to}</p>
-                        </>
-                      )}
-                      <p className="absolute top-[-40px] right-5 flex justify-center gap-2 items-center bg-blue-950 text-white px-3 py-1 rounded">
-                        <span className="text-2xl font-bold">{index + 1}</span>
-                        {"/"}
-                        <span className="text-2xl font-bold">
-                          {totalEmailCount}
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-                ))}
-            </pre>
+            <h1 className="mb-4 text-3xl font-bold text-white border-b-2 border-b-[var(--green-clr)] pb-2">
+              Sent Details
+            </h1>
+
+            <div className="relative mb-4">
+              <p className="font-semibold text-right text-white">Sent Item</p>
+
+              <div
+                id="delivered-list"
+                className="w-full h-[150px] inputCss"
+                readOnly
+              >
+                <pre>
+                  {mailResult &&
+                    [...mailResult].reverse().map((item, index) => (
+                      <div key={index} className="flex flex-col gap-3 ">
+                        <p className="absolute top-[-45px]  flex justify-center gap-2 bg-[var(--body-clr)] items-center text-white px-2 rounded">
+                          <span className="text-2xl font-bold">
+                            {index + 1}
+                          </span>
+                          {"/"}
+                          <span className="text-2xl font-bold">
+                            {totalEmailCount}
+                          </span>
+                        </p>
+                      </div>
+                    ))}
+                </pre>
+
+                <pre>
+                  {mailResult &&
+                    [...mailResult].reverse().map((item, index) => (
+                      <div key={index} className="relative flex flex-col gap-3">
+                        <div className="px-2 absolute  top-[50px] left-[10px] flex justify-center gap-2 py-2 bg-[var(--primary-clr)] items-center text-white rounded">
+                          {item.message === "Failed to send email" ? (
+                            <>
+                              <p className="font-semibold text-red-600">
+                                {item?.message}
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <p className="font-semibold ">
+                                {item?.to}{" "}
+                                <DoneIcon className="text-green-600" />
+                              </p>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                </pre>
+              </div>
+            </div>
+
+            <div className="relative">
+              <p className="font-semibold text-right text-white">Delivered</p>
+
+              <div
+                id="delivered-list"
+                className="w-full h-[500px] inputCss"
+                readOnly
+              >
+                <pre>
+                  {mailResult &&
+                    [...mailResult].reverse().map((item, index) => (
+                      <div key={index} className="flex flex-col gap-3 ">
+                        <p className="absolute top-[-45px]  flex justify-center gap-2 bg-[var(--body-clr)] items-center text-white px-2 rounded">
+                          <span className="text-2xl font-bold">
+                            {index + 1}
+                          </span>
+                          {"/"}
+                          <span className="text-2xl font-bold">
+                            {totalEmailCount}
+                          </span>
+                        </p>
+                      </div>
+                    ))}
+                </pre>
+
+                <pre>
+                  {mailResult &&
+                    [...mailResult].reverse().map((item, index) => (
+                      <div key={index} className="flex flex-col gap-3 ">
+                        <div className="px-2">
+                          {item.message === "Failed to send email" ? (
+                            <>
+                              <p className="font-semibold text-red-600">
+                                {item?.message}
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              {/* <p className="font-semibold text-green-600">
+                                {item?.message}
+                              </p> */}
+                              <p className="font-semibold ">
+                                {index + 1} {item?.to}{" "}
+                                <DoneIcon className="text-green-600" />
+                              </p>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                </pre>
+              </div>
+            </div>
+
+            {/* Send Button */}
+            <div className="flex justify-between gap-2 px-4 mt-4">
+              <div>
+                <Button
+                  variant="contained"
+                  size="large"
+                  color="error"
+                  className="font-semibold text-white rounded-full"
+                >
+                  STOP <StopCircleIcon />
+                </Button>
+              </div>
+
+              <div>
+                <Button
+                  variant="contained"
+                  size="large"
+                  onClick={handleSendEmail}
+                  disabled={sendLoading}
+                  className="font-semibold text-white hover:bg-[var(--gray-clr)] bg-[var(--green-clr)] rounded-full"
+                >
+                  {sendLoading ? "SENDING..." : "SEND"} <SendIcon />
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
