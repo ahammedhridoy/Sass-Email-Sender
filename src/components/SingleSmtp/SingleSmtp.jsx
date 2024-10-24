@@ -10,7 +10,7 @@ import DialogTitle from "@mui/material/DialogTitle";
 import DoneIcon from "@mui/icons-material/Done";
 import SendIcon from "@mui/icons-material/Send";
 import StopCircleIcon from "@mui/icons-material/StopCircle";
-import { sendTestMail } from "src/hooks/sendTestEmailHook";
+import LoopIcon from "@mui/icons-material/Loop";
 
 const VisuallyHiddenInput = styled("input")({
   clip: "rect(0 0 0 0)",
@@ -45,6 +45,8 @@ const SingleSMTP = () => {
   const [password, setPassword] = useState(""); //SMTP Password
   const [secure, setSecure] = useState(false);
   const [testMail, setTestMail] = useState("");
+  const [rotate, setRotate] = useState(false);
+  console.log(rotate);
 
   // Sent Details
   const [mailResult, setMailResult] = useState([]);
@@ -280,6 +282,8 @@ const SingleSMTP = () => {
         formData.append("port", port);
         formData.append("smtpUser", smtpUser);
         formData.append("password", password);
+        formData.append("secure", secure);
+        formData.append("rotate", rotate);
 
         attachments.forEach((attachment) => {
           formData.append("attachments", attachment);
@@ -540,6 +544,15 @@ const SingleSMTP = () => {
           </div>
 
           <div className="flex items-center justify-between w-full gap-2">
+            <div className="flex items-center justify-center gap-2 rotateCss w-[302px]">
+              <p className="font-semibold text-black">SMTP Rotate</p>{" "}
+              <Checkbox
+                className="text-black"
+                checked={rotate}
+                onChange={(e) => setRotate(e.target.checked)}
+              />
+              {/* <LoopIcon /> */}
+            </div>
             <div className="flex items-center justify-center gap-2">
               <p className="font-semibold text-white">Random Email Header</p>
               <Checkbox
@@ -713,7 +726,7 @@ const SingleSMTP = () => {
                   {mailResult &&
                     [...mailResult].reverse().map((item, index) => (
                       <div key={index} className="flex flex-col gap-3 ">
-                        <p className="absolute top-[-45px]  flex justify-center gap-2 bg-[var(--body-clr)] items-center text-white px-2 rounded">
+                        <p className="absolute top-[-10px]  flex justify-center gap-2 bg-[var(--body-clr)] items-center text-white px-2 rounded">
                           <span className="text-2xl font-bold">
                             {index + 1}
                           </span>
@@ -764,7 +777,7 @@ const SingleSMTP = () => {
                   {mailResult &&
                     [...mailResult].reverse().map((item, index) => (
                       <div key={index} className="flex flex-col gap-3 ">
-                        <p className="absolute top-[-45px]  flex justify-center gap-2 bg-[var(--body-clr)] items-center text-white px-2 rounded">
+                        <p className="absolute top-[-10px]  flex justify-center gap-2 bg-[var(--body-clr)] items-center text-white px-2 rounded">
                           <span className="text-2xl font-bold">
                             {index + 1}
                           </span>

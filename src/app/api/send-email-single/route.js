@@ -61,10 +61,12 @@ export async function POST(req) {
         const port = formData.get("port");
         const smtpUser = formData.get("smtpUser");
         const password = formData.get("password");
+        const secure = formData.get("secure");
         const attachments = formData.getAll("attachments");
         const batchSize = parseInt(formData.get("batchSize"));
         const delayTime = parseInt(formData.get("delayTime"));
         const emailHeader = formData.get("emailHeader") === "true";
+        const rotate = formData.get("rotate") === "true";
 
         if (!emailList.length || !subject || !html || !sender) {
           throw new Error("Missing required fields");
@@ -98,12 +100,27 @@ export async function POST(req) {
           const currentEmail = emailList[i];
 
           // Get the next SMTP server
-          const smtp = await getNextSingle(userId);
+          let smtp;
+          if (rotate) {
+            // Get the next SMTP server
+            smtp = await getNextSingle(userId);
+          } else {
+            const smtpServers = await prisma.single.findMany({
+              where: { clerkUserId: userId },
+            });
+
+            if (smtpServers.length === 0) {
+              throw new Error("No SMTP servers found for this user");
+            }
+
+            // Find the next SMTP server to use
+            smtp = smtpServers[0];
+          }
 
           const transporter = nodemailer.createTransport({
             host: host ? host : smtp.host,
             port: port ? port : smtp.port,
-            secure: true, // true for 465, false for other ports
+            secure: secure,
             auth: {
               user: smtpUser ? smtpUser : smtp.user,
               pass: password ? password : smtp.password,

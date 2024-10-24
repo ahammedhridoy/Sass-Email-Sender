@@ -62,13 +62,22 @@ textarea:focus-visible {
   outline: none;
 }
 
+.rotateCss {
+  border: 1px solid var(--primary-clr);
+  background-color: var(--gray-clr);
+  border-top-left-radius: 15px;
+  border-bottom-right-radius: 15px;
+  padding: 5px 10px;
+  color: black;
+  outline: none;
+}
+
 .addSMTPBtn {
   border-top-left-radius: 15px;
   border-bottom-right-radius: 15px;
   padding: 10px;
   background-color: var(--gray-clr);
 }
-
 
 .testSMTPBtn {
   border-top-left-radius: 15px;
