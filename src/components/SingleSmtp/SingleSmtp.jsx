@@ -1,21 +1,16 @@
 "use client";
 import { Button, Checkbox, FormControlLabel, TextField } from "@mui/material";
 import React, { useEffect, useState } from "react";
-import Card from "@mui/material/Card";
-import CardContent from "@mui/material/CardContent";
-import Typography from "@mui/material/Typography";
 import { styled } from "@mui/material/styles";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import toast, { Toaster } from "react-hot-toast";
-import Accordion from "@mui/material/Accordion";
-import AccordionSummary from "@mui/material/AccordionSummary";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogTitle from "@mui/material/DialogTitle";
 import DoneIcon from "@mui/icons-material/Done";
 import SendIcon from "@mui/icons-material/Send";
 import StopCircleIcon from "@mui/icons-material/StopCircle";
+import { sendTestMail } from "src/hooks/sendTestEmailHook";
 
 const VisuallyHiddenInput = styled("input")({
   clip: "rect(0 0 0 0)",
@@ -49,6 +44,7 @@ const SingleSMTP = () => {
   const [smtpUser, setSmtpUser] = useState(""); //SMTP User
   const [password, setPassword] = useState(""); //SMTP Password
   const [secure, setSecure] = useState(false);
+  const [testMail, setTestMail] = useState("");
 
   // Sent Details
   const [mailResult, setMailResult] = useState([]);
@@ -57,7 +53,36 @@ const SingleSMTP = () => {
   //Get From Database
   const [smtps, setSmtps] = useState([]);
 
-  console.log(smtps);
+  // Send Test Mail
+  const sendTestMail = async () => {
+    try {
+      // Prepare form data for each email
+      const formData = new FormData();
+
+      formData.append("host", host);
+      formData.append("port", port);
+      formData.append("smtpUser", smtpUser);
+      formData.append("password", password);
+      formData.append("secure", secure);
+      formData.append("testMail", testMail);
+
+      const response = await fetch("/api/test-smtp", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        toast.error("Failed to send email");
+        throw new Error("Failed to send email");
+      }
+
+      if (response.ok) {
+        toast.success("Email sent successfully");
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   // Delete SMTP
   const handleDeleteSMTP = async () => {
@@ -77,7 +102,18 @@ const SingleSMTP = () => {
   };
 
   // Dialog
-  const [open, setOpen] = React.useState(false);
+  const [openTest, setOpenTest] = useState(false);
+
+  const handleTestOpen = () => {
+    setOpenTest(true);
+  };
+
+  const handleTestClose = () => {
+    setOpenTest(false);
+  };
+
+  // Dialog
+  const [open, setOpen] = useState(false);
 
   const handleClickOpen = () => {
     setOpen(true);
@@ -371,20 +407,20 @@ const SingleSMTP = () => {
           </div>
 
           <div className="flex items-end justify-between gap-4 mb-4">
-            <div className="w-full">
-              <p className="font-semibold text-right text-white">Port</p>
-              <input
-                type="text"
-                id="port"
-                placeholder="Port"
-                className="w-full inputCss"
-                value={port}
-                onChange={(e) => setPort(e.target.value)}
-              />
-            </div>
+            <div className="flex items-center justify-center w-full gap-4">
+              <div className="w-full">
+                <p className="font-semibold text-right text-white">Port</p>
+                <input
+                  type="text"
+                  id="port"
+                  placeholder="Port"
+                  className="w-full inputCss"
+                  value={port}
+                  onChange={(e) => setPort(e.target.value)}
+                />
+              </div>
 
-            <div className="flex items-center justify-between w-full gap-2">
-              <div className="flex items-center justify-center gap-2">
+              <div className="flex items-center justify-center gap-2 mt-4">
                 <p className="font-semibold text-white">SSL</p>
                 <Checkbox
                   className="text-white "
@@ -392,6 +428,16 @@ const SingleSMTP = () => {
                   onChange={(e) => setSecure(e.target.checked)}
                 />
               </div>
+            </div>
+
+            <div className="flex items-center justify-end w-full gap-2">
+              <Button
+                variant="contained"
+                onClick={handleTestOpen}
+                className="font-semibold text-white testSMTPBtn hover:text-black hover:bg-[var(--gray-clr)]"
+              >
+                Test SMTP
+              </Button>
               <Button
                 variant="contained"
                 className="font-semibold text-black addSMTPBtn hover:text-white hover:bg-[var(--green-clr)]"
@@ -399,6 +445,39 @@ const SingleSMTP = () => {
               >
                 Add SMTP
               </Button>
+
+              <>
+                <Dialog
+                  open={openTest}
+                  onClose={handleTestClose}
+                  aria-labelledby="alert-dialog-title"
+                  aria-describedby="alert-dialog-description"
+                >
+                  <DialogTitle id="alert-dialog-title">
+                    <input
+                      type="email"
+                      id="test-email"
+                      placeholder="test email"
+                      className="w-full inputCss"
+                      onChange={(e) => setTestMail(e.target.value)}
+                    />
+                  </DialogTitle>
+
+                  <DialogActions>
+                    <Button
+                      onClick={() => {
+                        handleTestClose();
+                        sendTestMail();
+                      }}
+                    >
+                      Send
+                    </Button>
+                    <Button onClick={handleTestClose} autoFocus>
+                      Cancel
+                    </Button>
+                  </DialogActions>
+                </Dialog>
+              </>
             </div>
           </div>
 
@@ -431,12 +510,6 @@ const SingleSMTP = () => {
                   onChange={(e) => setRandom(e.target.checked)}
                 />
               </div>
-              <Button
-                variant="contained"
-                className="font-semibold text-white testSMTPBtn hover:text-black hover:bg-[var(--gray-clr)]"
-              >
-                Test SMTP
-              </Button>
             </div>
           </div>
 
