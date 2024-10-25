@@ -52,6 +52,7 @@ export async function POST(req) {
     async start(controller) {
       try {
         const formData = await req.formData();
+        console.log("Received form data:", formData);
         const emailList = formData.get("to")?.split(",") || [];
         let subject = formData.get("subject");
         let html = formData.get("html");

@@ -46,7 +46,7 @@ const SingleSMTP = () => {
   const [secure, setSecure] = useState(false);
   const [testMail, setTestMail] = useState("");
   const [rotate, setRotate] = useState(false);
-  console.log(rotate);
+  const [abortController, setAbortController] = useState(null);
 
   // Sent Details
   const [mailResult, setMailResult] = useState([]);
@@ -240,6 +240,10 @@ const SingleSMTP = () => {
       return;
     }
 
+    // Create a new AbortController for this request
+    const controller = new AbortController();
+    setAbortController(controller);
+
     setSendLoading(true);
     setMessage("");
     setMailResult([]);
@@ -292,6 +296,7 @@ const SingleSMTP = () => {
         const response = await fetch("/api/send-email-single", {
           method: "POST",
           body: formData,
+          signal: controller.signal,
         });
 
         if (!response.ok) {
@@ -353,11 +358,21 @@ const SingleSMTP = () => {
         }
       }
     } catch (error) {
-      setMessage("Error sending email: " + error.message);
-      setError(message);
-      console.log(error);
+      if (error.name === "AbortError") {
+        console.log("Email sending is stopped.");
+      } else {
+        setMessage("Error sending email: " + error.message);
+      }
     } finally {
       setSendLoading(false);
+      setAbortController(null); // Reset abort controller after completion
+    }
+  };
+
+  const stopEmailSending = () => {
+    if (abortController) {
+      abortController.abort(); // Abort the fetch request
+      toast.error("Aborting email sending...");
     }
   };
 
@@ -714,19 +729,19 @@ const SingleSMTP = () => {
               Sent Details
             </h1>
 
-            <div className="relative mb-4">
+            <div className="relative">
               <p className="font-semibold text-right text-white">Sent Item</p>
 
               <div
                 id="delivered-list"
-                className="w-full h-[150px] inputCss"
+                className="w-full h-[500px] inputCss"
                 readOnly
               >
                 <pre>
                   {mailResult &&
                     [...mailResult].reverse().map((item, index) => (
                       <div key={index} className="flex flex-col gap-3 ">
-                        <p className="absolute top-[-10px]  flex justify-center gap-2 bg-[var(--body-clr)] items-center text-white px-2 rounded">
+                        <p className="absolute top-[-45px]  flex justify-center gap-2 bg-[var(--body-clr)] items-center text-white px-2 rounded">
                           <span className="text-2xl font-bold">
                             {index + 1}
                           </span>
@@ -742,8 +757,11 @@ const SingleSMTP = () => {
                 <pre>
                   {mailResult &&
                     [...mailResult].reverse().map((item, index) => (
-                      <div key={index} className="relative flex flex-col gap-3">
-                        <div className="px-2 absolute  top-[50px] left-[10px] flex justify-center gap-2 py-2 bg-[var(--primary-clr)] items-center text-white rounded">
+                      <div
+                        key={index}
+                        className="flex flex-col gap-3 bg-[var(--primary-clr)] px-10 py-5 absolute"
+                      >
+                        <div className="px-2">
                           {item.message === "Failed to send email" ? (
                             <>
                               <p className="font-semibold text-red-600">
@@ -752,8 +770,11 @@ const SingleSMTP = () => {
                             </>
                           ) : (
                             <>
+                              {/* <p className="font-semibold text-green-600">
+                                {item?.message}
+                              </p> */}
                               <p className="font-semibold ">
-                                {item?.to}{" "}
+                                {index + 1} {item?.to}{" "}
                                 <DoneIcon className="text-green-600" />
                               </p>
                             </>
@@ -777,7 +798,7 @@ const SingleSMTP = () => {
                   {mailResult &&
                     [...mailResult].reverse().map((item, index) => (
                       <div key={index} className="flex flex-col gap-3 ">
-                        <p className="absolute top-[-10px]  flex justify-center gap-2 bg-[var(--body-clr)] items-center text-white px-2 rounded">
+                        <p className="absolute top-[-45px]  flex justify-center gap-2 bg-[var(--body-clr)] items-center text-white px-2 rounded">
                           <span className="text-2xl font-bold">
                             {index + 1}
                           </span>
@@ -827,6 +848,8 @@ const SingleSMTP = () => {
                   size="large"
                   color="error"
                   className="font-semibold text-white rounded-full"
+                  onClick={stopEmailSending}
+                  disabled={!sendLoading}
                 >
                   STOP <StopCircleIcon />
                 </Button>
@@ -836,9 +859,9 @@ const SingleSMTP = () => {
                 <Button
                   variant="contained"
                   size="large"
+                  className="font-semibold text-white hover:bg-[var(--gray-clr)] bg-[var(--green-clr)] rounded-full"
                   onClick={handleSendEmail}
                   disabled={sendLoading}
-                  className="font-semibold text-white hover:bg-[var(--gray-clr)] bg-[var(--green-clr)] rounded-full"
                 >
                   {sendLoading ? "SENDING..." : "SEND"} <SendIcon />
                 </Button>
