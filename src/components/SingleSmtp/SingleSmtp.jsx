@@ -50,6 +50,7 @@ const SingleSMTP = () => {
 
   // Sent Details
   const [mailResult, setMailResult] = useState([]);
+  const [currentEmail, setCurrentEmail] = useState([]);
   const [error, setError] = useState("");
   const [totalEmailCount, setTotalEmailCount] = useState("");
   //Get From Database
@@ -75,11 +76,11 @@ const SingleSMTP = () => {
 
       if (!response.ok) {
         toast.error("Failed to send email");
-        throw new Error("Failed to send email");
+        throw new Error("SMTP Not Working");
       }
 
       if (response.ok) {
-        toast.success("Email sent successfully");
+        toast.success("Email Sent Successfully");
       }
     } catch (error) {
       console.log(error);
@@ -267,7 +268,6 @@ const SingleSMTP = () => {
         let currentSender = sender;
         if (random) {
           currentSender = await fetchRandomName();
-          console.log("Using random sender:", currentSender);
         }
 
         // Prepare form data for each email
@@ -318,8 +318,13 @@ const SingleSMTP = () => {
             try {
               const emailResult = JSON.parse(parts[j]);
 
-              setMailResult((prev) => [...prev, emailResult]);
+              // setMailResult((prev) => [...prev, emailResult]);
+              setMailResult((prev) => [
+                ...prev,
+                { ...emailResult, originalIndex: prev.length + 1 },
+              ]);
 
+              setCurrentEmail([emailResult?.to]);
               if (
                 emailResult.currentEmailCount &&
                 emailResult.totalEmailCount
@@ -380,14 +385,94 @@ const SingleSMTP = () => {
     <div className="container">
       <Toaster position="top-center" reverseOrder={false} />
 
-      <div className="flex flex-col w-full gap-4 my-10 lg:flex-row">
+      <div className="flex flex-col w-full gap-4 my-5 lg:flex-row">
         {/* Left Side */}
-        <div className="w-full basis-3/4">
-          <h1 className="mb-4 text-3xl font-bold text-white border-b-2 border-b-[var(--green-clr)] pb-2">
+        <div className="w-full  lg:w-[22%]">
+          <h1 className="mb-2 text-2xl font-bold text-white border-b-2 border-b-[var(--green-clr)] pb-2 textStyle">
+            SMTP List
+          </h1>
+
+          <div className="flex flex-col w-full gap-4 lg:items-center md:flex-row">
+            <div className="flex items-center justify-center w-full gap-2 rotateCss">
+              <p className="font-semibold text-black">SMTP Rotate</p>{" "}
+              <Checkbox
+                className="text-black"
+                checked={rotate}
+                onChange={(e) => setRotate(e.target.checked)}
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-col justify-between gap-4 mt-5 mb-4 lg:flex-row ">
+            <div className="w-full">
+              <div
+                id="smtp-list"
+                className="w-full h-[500px] overflow-y-auto inputCss"
+                readOnly
+              >
+                <p className="font-bold">Total SMTP: {smtps?.length}</p>
+                {smtps?.map((smtp, index) => {
+                  return (
+                    <p
+                      key={smtp.id}
+                      className="px-2 py-[5px] font-bold text-[14px]"
+                    >
+                      {index + 1}. {smtp?.user}
+                    </p>
+                  );
+                })}
+              </div>
+
+              <div className="w-full mt-5">
+                <Button
+                  variant="contained"
+                  size="large"
+                  color="error"
+                  onClick={handleClickOpen}
+                >
+                  Delete All SMTP
+                </Button>
+                <>
+                  <Dialog
+                    open={open}
+                    onClose={handleClose}
+                    aria-labelledby="alert-dialog-title"
+                    aria-describedby="alert-dialog-description"
+                  >
+                    <DialogTitle
+                      id="alert-dialog-title"
+                      className="text-red-500"
+                    >
+                      {"Are you sure you want to delete all SMTP?"}
+                    </DialogTitle>
+
+                    <DialogActions>
+                      <Button
+                        onClick={() => {
+                          handleClose();
+                          handleDeleteSMTP();
+                        }}
+                      >
+                        Yes
+                      </Button>
+                      <Button onClick={handleClose} autoFocus>
+                        No
+                      </Button>
+                    </DialogActions>
+                  </Dialog>
+                </>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Middle Side */}
+        <div className="w-full lg:w-[56%]">
+          <h1 className="mb-2 text-2xl font-bold text-white border-b-2 border-b-[var(--green-clr)] pb-2 textStyle">
             SMTP Configuration
           </h1>
           {/* Top Section */}
-          <div className="flex justify-between gap-4 mb-4">
+          <div className="flex flex-col justify-between gap-4 mb-2 lg:flex-row">
             <div className="w-full">
               <p className="font-semibold text-right text-white">Host</p>
               <input
@@ -425,7 +510,7 @@ const SingleSMTP = () => {
             </div>
           </div>
 
-          <div className="flex items-end justify-between gap-4 mb-4">
+          <div className="flex flex-col items-end justify-between gap-4 mb-2 lg:flex-row">
             <div className="flex items-center justify-center w-full gap-4">
               <div className="w-full">
                 <p className="font-semibold text-right text-white">Port</p>
@@ -501,12 +586,12 @@ const SingleSMTP = () => {
           </div>
 
           <div className="mt-5">
-            <h1 className="mb-4 text-3xl font-bold text-white border-b-2 border-b-[var(--green-clr)] pb-2">
+            <h1 className="mb-2 text-2xl font-bold text-white border-b-2 border-b-[var(--green-clr)] pb-2 textStyle">
               Email Details
             </h1>
           </div>
           {/* Middle Section */}
-          <div className="flex items-end justify-between gap-4 mb-4">
+          <div className="flex flex-col items-end justify-between gap-4 mb-2 lg:flex-row">
             <div className="w-full">
               <p className="font-semibold text-right text-white">Sender Name</p>
               <input
@@ -532,7 +617,7 @@ const SingleSMTP = () => {
             </div>
           </div>
 
-          <div className="flex justify-between gap-4 mb-4">
+          <div className="flex flex-col justify-between gap-4 mb-2 lg:flex-row">
             <div className="w-full">
               <p className="font-semibold text-right text-white">Subject</p>
               <input
@@ -546,37 +631,35 @@ const SingleSMTP = () => {
             </div>
 
             <div className="w-full">
-              <p className="font-semibold text-right text-white">Batch Size</p>
-              <input
-                type="text"
-                id="batch-size"
-                placeholder="Batch Size e.g 10"
-                className="w-full inputCss"
-                value={batchSize}
-                onChange={(e) => setBatchSize(parseInt(e.target.value))}
-              />
+              <p className="font-semibold text-right text-white">Delay</p>
+              <div className="flex w-full gap-2">
+                <div className="w-full">
+                  <input
+                    type="text"
+                    id="batch-size"
+                    placeholder="Quantity e.g 10"
+                    className="w-full inputCss"
+                    value={batchSize}
+                    onChange={(e) => setBatchSize(parseInt(e.target.value))}
+                  />
+                </div>
+
+                <div className="w-full">
+                  <input
+                    type="text"
+                    id="delay-time"
+                    placeholder="Time (in seconds) e.g 5"
+                    className="w-full inputCss"
+                    value={delayTime}
+                    onChange={(e) => setDelayTime(parseInt(e.target.value))}
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center justify-between w-full gap-2">
-            <div className="flex items-center justify-center gap-2 rotateCss w-[302px]">
-              <p className="font-semibold text-black">SMTP Rotate</p>{" "}
-              <Checkbox
-                className="text-black"
-                checked={rotate}
-                onChange={(e) => setRotate(e.target.checked)}
-              />
-              {/* <LoopIcon /> */}
-            </div>
-            <div className="flex items-center justify-center gap-2">
-              <p className="font-semibold text-white">Random Email Header</p>
-              <Checkbox
-                className="text-white"
-                checked={emailHeader}
-                onChange={(e) => setEmailHeader(e.target.checked)}
-              />
-            </div>
-            <div>
+          <div className="flex flex-col items-end justify-between w-full gap-4 lg:flex-row">
+            <div className="w-full">
               <p className="font-semibold text-right text-white">
                 Upload Header File
               </p>
@@ -587,7 +670,7 @@ const SingleSMTP = () => {
                 tabIndex={-1}
                 startIcon={<CloudUploadIcon />}
                 size="large"
-                className="bg-[var(--gray-clr)] text-black hover:bg-[var(--green-clr)]"
+                className="bg-[var(--gray-clr)] text-black hover:bg-[var(--green-clr)]  w-full "
               >
                 Upload Text File
                 <VisuallyHiddenInput
@@ -596,91 +679,31 @@ const SingleSMTP = () => {
                 />
               </Button>
             </div>
+            <div className="flex flex-col w-full gap-4 lg:items-center md:flex-row">
+              <div className="flex items-center gap-2 lg:justify-center">
+                <p className="font-semibold text-white">Random Header</p>
+                <Checkbox
+                  className="text-white"
+                  checked={emailHeader}
+                  onChange={(e) => setEmailHeader(e.target.checked)}
+                />
+              </div>
+            </div>
           </div>
 
           {/* Bottom Section */}
-          <div className="flex justify-between gap-4 mt-5 mb-4">
-            <div className="w-full">
-              <p className="font-semibold text-right text-white">SMTP LIST</p>
-
-              <div
-                id="smtp-list"
-                className="w-full h-[506px] inputCss"
-                readOnly
-              >
-                <p className="font-bold">Total SMTP: {smtps?.length}</p>
-                {smtps?.map((smtp, index) => {
-                  return (
-                    <p key={smtp.id} className="px-2 py-[5px] font-bold">
-                      {index + 1}. {smtp?.user}
-                    </p>
-                  );
-                })}
-              </div>
-
-              <div className="w-full mt-5">
-                <Button
-                  variant="contained"
-                  size="large"
-                  color="error"
-                  onClick={handleClickOpen}
-                >
-                  Delete All SMTP
-                </Button>
-                <>
-                  <Dialog
-                    open={open}
-                    onClose={handleClose}
-                    aria-labelledby="alert-dialog-title"
-                    aria-describedby="alert-dialog-description"
-                  >
-                    <DialogTitle id="alert-dialog-title">
-                      {"Are you sure you want to delete all SMTP?"}
-                    </DialogTitle>
-
-                    <DialogActions>
-                      <Button
-                        onClick={() => {
-                          handleClose();
-                          handleDeleteSMTP();
-                        }}
-                      >
-                        Yes
-                      </Button>
-                      <Button onClick={handleClose} autoFocus>
-                        No
-                      </Button>
-                    </DialogActions>
-                  </Dialog>
-                </>
-              </div>
-            </div>
-
+          <div className="flex flex-col justify-between gap-4 mt-2 mb-4 lg:flex-row ">
             <div className="w-full">
               <div>
                 <p className="font-semibold text-right text-white">Recepient</p>
                 <textarea
                   name="textarea"
                   id="recepient"
-                  rows="17"
+                  rows="8"
                   className="w-full inputCss"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 ></textarea>
-              </div>
-
-              <div>
-                <p className="font-semibold text-right text-white">
-                  Delay Time
-                </p>
-                <input
-                  type="text"
-                  id="delay-time"
-                  placeholder="Delay Time (in seconds) e.g 5"
-                  className="w-full inputCss"
-                  value={delayTime}
-                  onChange={(e) => setDelayTime(parseInt(e.target.value))}
-                />
               </div>
             </div>
 
@@ -690,7 +713,7 @@ const SingleSMTP = () => {
                 <textarea
                   name="textarea"
                   id="html-body"
-                  rows="17"
+                  rows="8"
                   className="w-full inputCss"
                   value={html}
                   onChange={(e) => setHtml(e.target.value)}
@@ -723,25 +746,25 @@ const SingleSMTP = () => {
         </div>
 
         {/* Right Side Email Details*/}
-        <div className="w-full px-2 overflow-x-hidden basis-1/4">
-          <div>
-            <h1 className="mb-4 text-3xl font-bold text-white border-b-2 border-b-[var(--green-clr)] pb-2">
+        <div className="w-full lg:w-[22%]">
+          <div className="w-full">
+            <h1 className="mb-4 text-2xl font-bold text-white border-b-2 border-b-[var(--green-clr)] pb-2 textStyle">
               Sent Details
             </h1>
 
-            <div className="relative">
+            <div className="relative w-full mb-4">
               <p className="font-semibold text-right text-white">Sent Item</p>
 
               <div
                 id="delivered-list"
-                className="w-full h-[500px] inputCss"
+                className="w-full h-[130px] inputCss"
                 readOnly
               >
                 <pre>
                   {mailResult &&
                     [...mailResult].reverse().map((item, index) => (
                       <div key={index} className="flex flex-col gap-3 ">
-                        <p className="absolute top-[-45px]  flex justify-center gap-2 bg-[var(--body-clr)] items-center text-white px-2 rounded">
+                        <p className="absolute top-[-10px]  flex justify-center gap-2 bg-[var(--body-clr)] items-center text-white px-2 rounded">
                           <span className="text-2xl font-bold">
                             {index + 1}
                           </span>
@@ -759,22 +782,19 @@ const SingleSMTP = () => {
                     [...mailResult].reverse().map((item, index) => (
                       <div
                         key={index}
-                        className="flex flex-col gap-3 bg-[var(--primary-clr)] px-10 py-5 absolute"
+                        className="absolute flex flex-col gap-3 -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2"
                       >
-                        <div className="px-2">
+                        <div className="">
                           {item.message === "Failed to send email" ? (
                             <>
-                              <p className="font-semibold text-red-600">
+                              <p className="font-semibold text-red-600 break-words mt-[20px] text-[14px]">
                                 {item?.message}
                               </p>
                             </>
                           ) : (
                             <>
-                              {/* <p className="font-semibold text-green-600">
-                                {item?.message}
-                              </p> */}
-                              <p className="font-semibold ">
-                                {index + 1} {item?.to}{" "}
+                              <p className="font-semibold break-words mt-[20px] text-[14px]">
+                                {index + 1} {currentEmail}{" "}
                                 <DoneIcon className="text-green-600" />
                               </p>
                             </>
@@ -786,19 +806,19 @@ const SingleSMTP = () => {
               </div>
             </div>
 
-            <div className="relative">
+            <div className="relative w-full">
               <p className="font-semibold text-right text-white">Delivered</p>
 
               <div
                 id="delivered-list"
-                className="w-full h-[500px] inputCss"
+                className="w-full h-[400px] inputCss"
                 readOnly
               >
                 <pre>
                   {mailResult &&
                     [...mailResult].reverse().map((item, index) => (
                       <div key={index} className="flex flex-col gap-3 ">
-                        <p className="absolute top-[-45px]  flex justify-center gap-2 bg-[var(--body-clr)] items-center text-white px-2 rounded">
+                        <p className="absolute top-[-10px]  flex justify-center gap-2 bg-[var(--body-clr)] items-center text-white px-2 rounded">
                           <span className="text-2xl font-bold">
                             {index + 1}
                           </span>
@@ -813,22 +833,22 @@ const SingleSMTP = () => {
 
                 <pre>
                   {mailResult &&
-                    [...mailResult].reverse().map((item, index) => (
-                      <div key={index} className="flex flex-col gap-3 ">
-                        <div className="px-2">
+                    [...mailResult].reverse().map((item) => (
+                      <div
+                        key={item.originalIndex}
+                        className="flex flex-col gap-3 "
+                      >
+                        <div className="">
                           {item.message === "Failed to send email" ? (
                             <>
-                              <p className="font-semibold text-red-600">
+                              <p className="font-semibold text-red-600 break-words text-[14px]">
                                 {item?.message}
                               </p>
                             </>
                           ) : (
                             <>
-                              {/* <p className="font-semibold text-green-600">
-                                {item?.message}
-                              </p> */}
-                              <p className="font-semibold ">
-                                {index + 1} {item?.to}{" "}
+                              <p className="font-semibold break-words text-[14px]">
+                                {item.originalIndex} {item?.to}{" "}
                                 <DoneIcon className="text-green-600" />
                               </p>
                             </>

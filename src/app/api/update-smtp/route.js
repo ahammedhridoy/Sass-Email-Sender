@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
 
-export async function GET(req) {
+export async function PATCH(req) {
   try {
     const { userId } = auth();
 
@@ -22,11 +23,22 @@ export async function GET(req) {
       );
     }
 
-    return new Response(JSON.stringify({ username: user?.username }), {
-      status: 200,
+    // Update the specific fields to null for the authenticated user
+    await prisma.user.update({
+      where: { clerkId: userId },
+      data: {
+        credentialsPath: null,
+        tokenPath: null,
+        username: null,
+      },
     });
+
+    return NextResponse.json(
+      { message: "Fields updated successfully" },
+      { status: 200 }
+    );
   } catch (error) {
-    console.error("Error fetching username:", error);
+    console.error("Error updating fields:", error);
     return new Response(JSON.stringify({ error: "Internal Server Error" }), {
       status: 500,
     });

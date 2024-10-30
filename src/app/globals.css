@@ -18,10 +18,10 @@ body {
   box-sizing: border-box;
   font-family: "Poppins", sans-serif;
   background-color: var(--body-clr);
-  overflow-x: hidden;
+  overflow-x: hidden !important;
 }
 .container {
-  max-width: 1440px;
+  max-width: 1500px;
 }
 
 .css-hip9hq-MuiPaper-root-MuiAppBar-root {
@@ -84,4 +84,15 @@ textarea:focus-visible {
   border-bottom-right-radius: 15px;
   padding: 10px;
   background-color: var(--green-clr);
+}
+
+.MuiPaper-root.MuiPaper-elevation.MuiPaper-rounded.MuiPaper-elevation24.MuiDialog-paper.MuiDialog-paperScrollPaper.MuiDialog-paperWidthSm.css-1t1j96h-MuiPaper-root-MuiDialog-paper {
+  background-color: var(--body-clr) !important;
+}
+
+.textStyle {
+  background: #00ff00;
+  background: linear-gradient(to left, #00ff00 0%, #00ffff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }

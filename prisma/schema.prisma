@@ -41,8 +41,8 @@ model Single {
 }
 
 model User {
-  id              String   @id @default(auto()) @map("_id") @db.ObjectId // Keep this as MongoDB ObjectId
-  clerkId         String   @unique // This field will be used for relationships
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  clerkId         String   @unique
   credentialsPath Json?
   tokenPath       String?
   username        String?
