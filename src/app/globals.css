@@ -24,9 +24,10 @@ body {
   max-width: 1500px;
 }
 
-.css-hip9hq-MuiPaper-root-MuiAppBar-root {
-  background-color: var(--primary-clr) !important;
+header {
+  background-color: black !important;
 }
+
 .MuiCard-root-css {
   overflow-x: hidden !important;
   overflow-y: scroll !important;

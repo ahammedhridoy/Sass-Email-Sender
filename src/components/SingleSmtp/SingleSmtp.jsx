@@ -10,7 +10,6 @@ import DialogTitle from "@mui/material/DialogTitle";
 import DoneIcon from "@mui/icons-material/Done";
 import SendIcon from "@mui/icons-material/Send";
 import StopCircleIcon from "@mui/icons-material/StopCircle";
-import LoopIcon from "@mui/icons-material/Loop";
 
 const VisuallyHiddenInput = styled("input")({
   clip: "rect(0 0 0 0)",

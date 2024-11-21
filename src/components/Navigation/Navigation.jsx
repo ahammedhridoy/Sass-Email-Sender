@@ -10,6 +10,7 @@ import MenuItem from "@mui/material/MenuItem";
 import Menu from "@mui/material/Menu";
 import Link from "next/link";
 import { SignInButton, SignOutButton } from "@clerk/nextjs";
+import Image from "next/image";
 
 const Navigation = () => {
   const [auth, setAuth] = React.useState(true);
@@ -24,12 +25,14 @@ const Navigation = () => {
   };
 
   return (
-    <div className="bg-[#0A123E]">
+    <div className="bg-[#000000]">
       <Box sx={{ flexGrow: 1 }}>
         <AppBar position="static">
           <Toolbar>
             <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-              <Link href="/">Mail Sender</Link>
+              <Link href="/">
+                <Image src="/ninja.png" alt="logo" width={200} height={200} />
+              </Link>
             </Typography>
             {auth && (
               <div>
