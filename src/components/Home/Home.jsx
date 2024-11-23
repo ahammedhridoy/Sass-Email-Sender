@@ -462,7 +462,7 @@ const Home = () => {
                     <DialogActions>
                       <Button
                         onClick={() => {
-                          console.log("Button clicked"); // Check if button registers click
+                          console.log("Button clicked");
                         }}
                       >
                         Yes
