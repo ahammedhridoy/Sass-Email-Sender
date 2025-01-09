@@ -6,7 +6,6 @@ import { currentUser, getAuth } from "@clerk/nextjs/server";
 export async function POST(req) {
   try {
     const { host, port, smtpUser, password, secure } = await req.json();
-    console.log(secure);
 
     const user = await currentUser();
 
@@ -62,7 +61,7 @@ export async function POST(req) {
 // GET /api/single/upload
 export async function GET() {
   try {
-    const user = await currentUser(); // Get the currently authenticated Clerk user
+    const user = await currentUser();
 
     if (!user || !user.id) {
       return new Response(

@@ -133,7 +133,7 @@ export async function POST(req) {
           // Replace the tags in the subject and html
           const processedSubject = replaceTags(subject, currentEmail);
           const processedHtml = replaceTags(
-            `${emailHeader ? randomHeader + "<br/>" : ""}${html}`,
+            `${emailHeader ? randomHeader + "<br/><br/>" : ""}${html}`,
             currentEmail
           );
 

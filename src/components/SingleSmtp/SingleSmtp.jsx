@@ -173,6 +173,7 @@ const SingleSMTP = () => {
     try {
       const response = await fetch("/api/single/upload", { method: "GET" });
       const data = await response.json();
+      console.log("data:", data);
       setSmtps(data?.smtps);
     } catch (error) {
       console.log(error);
@@ -810,7 +811,7 @@ const SingleSMTP = () => {
 
               <div
                 id="delivered-list"
-                className="w-full h-[400px] inputCss"
+                className="w-full h-[400px] inputCss overflow-y-scroll no-scrollbar"
                 readOnly
               >
                 <pre>

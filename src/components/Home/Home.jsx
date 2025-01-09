@@ -803,7 +803,7 @@ const Home = () => {
 
               <div
                 id="delivered-list"
-                className="w-full lg:h-[300px] h-[200px] inputCss"
+                className="w-full lg:h-[300px] h-[200px] inputCss overflow-y-scroll no-scrollbar"
                 readOnly
               >
                 <pre>

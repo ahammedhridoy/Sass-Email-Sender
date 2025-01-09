@@ -57,11 +57,10 @@ export async function POST(req) {
         let html = formData.get("html");
         const sender = formData.get("sender");
         const username = formData.get("username");
-        // const logo = formData.get("logo");
         const attachments = formData.getAll("attachments");
         const batchSize = parseInt(formData.get("batchSize"));
         const delayTime = parseInt(formData.get("delayTime"));
-        const emailHeader = formData.get("emailHeader") === "true";
+        const emailHeaderEnabled = formData.get("emailHeader") === "true";
 
         if (!emailList.length || !subject || !html || !sender || !username) {
           throw new Error("Missing required fields");
@@ -122,23 +121,27 @@ export async function POST(req) {
           where: { clerkId: userId },
         });
 
-        if (!headersRecord || !headersRecord.content) {
-          throw new Error("No mail headers found");
-        }
+        let randomHeader = "";
 
-        const headersArray = headersRecord.content
-          .split("\n")
-          .filter((line) => line.trim() !== "");
+        // Check if headers exist and select a random one if enabled
+        if (emailHeaderEnabled && headersRecord && headersRecord.content) {
+          const headersArray = headersRecord.content
+            .split("\n")
+            .filter((line) => line.trim() !== "");
+
+          if (headersArray.length > 0) {
+            randomHeader =
+              headersArray[Math.floor(Math.random() * headersArray.length)];
+          }
+        }
 
         for (let i = 0; i < emailList.length; i++) {
           const currentEmail = emailList[i];
-          const randomHeader =
-            headersArray[Math.floor(Math.random() * headersArray.length)];
 
           // Replace the tags in the subject and html
           const processedSubject = replaceTags(subject, currentEmail);
           const processedHtml = replaceTags(
-            `${emailHeader ? randomHeader + "<br/>" : ""}${html}`,
+            `${randomHeader ? randomHeader + "<br/><br/>" : ""}${html}`,
             currentEmail
           );
 
