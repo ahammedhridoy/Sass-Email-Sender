@@ -185,6 +185,23 @@ const Home = () => {
     }
   };
 
+  // Delete SMTP
+  const handleDeleteSMTP = async () => {
+    try {
+      const response = await fetch(`/api/json`, {
+        method: "DELETE",
+      });
+      if (response.ok) {
+        toast.success("SMTP deleted successfully");
+      } else {
+        toast.error(`Error deleting SMTP`);
+      }
+      fetchSMTPInfo();
+    } catch (error) {
+      toast.error(`Error deleting SMTP`);
+    }
+  };
+
   // Dialog
   const [openTest, setOpenTest] = useState(false);
 
@@ -462,7 +479,8 @@ const Home = () => {
                     <DialogActions>
                       <Button
                         onClick={() => {
-                          console.log("Button clicked");
+                          handleClose();
+                          handleDeleteSMTP();
                         }}
                       >
                         Yes
