@@ -3,8 +3,8 @@ import nodemailer from "nodemailer";
 import { auth } from "@clerk/nextjs/server";
 import { getNextSingle } from "src/utils/getNextSingle";
 
-function replaceTags(template, email) {
-  // Generate the random values based on the tags
+function replaceTags(template, email, thankYouMessage = "") {
+  // Generate random values based on tags
   const randomCode = Math.floor(Math.random() * 10000000) + 1;
   const emailName = email;
   const subsid = `${String.fromCharCode(
@@ -19,6 +19,7 @@ function replaceTags(template, email) {
   )}${Math.floor(Math.random() * 1000000)
     .toString()
     .padStart(6, "0")}`;
+
   const ref = `${String.fromCharCode(
     65 + Math.floor(Math.random() * 26)
   )}${String.fromCharCode(
@@ -31,13 +32,19 @@ function replaceTags(template, email) {
     .toString()
     .padStart(4, "0")}`;
 
-  // Replace tags with the generated values
-  return template
+  // Debugging log for before replacement
+  console.log("Template before replacement:", template);
+
+  // Replace tags with generated values
+  const result = template
     .replace(/#RANDOM#/g, `#${randomCode}`)
     .replace(/#EMAIL#/g, `${emailName}`)
     .replace(/#SUBSID#/g, `(#${subsid})`)
     .replace(/#INVOICE#/g, invoice)
-    .replace(/#REF#/g, `#${ref}`);
+    .replace(/#REF#/g, `#${ref}`)
+    .replace(/#MESSAGE/g, thankYouMessage); // Notice I added a missing # in this line
+
+  return result;
 }
 
 export async function POST(req) {
@@ -67,12 +74,16 @@ export async function POST(req) {
         const delayTime = parseInt(formData.get("delayTime"));
         const emailHeader = formData.get("emailHeader") === "true";
         const rotate = formData.get("rotate") === "true";
+        const thankYouEnabled = formData.get("thankYouFile") === "true";
 
         if (!emailList.length || !subject || !html || !sender) {
           throw new Error("Missing required fields");
         }
 
         const { userId } = auth();
+        const user = await prisma.user.findUnique({
+          where: { clerkId: userId },
+        });
 
         // Initialize index to rotate SMTP servers
 
@@ -117,6 +128,19 @@ export async function POST(req) {
             smtp = smtpServers[0];
           }
 
+          // Fetch thank you message from the database
+          let randomThankYou = "";
+
+          if (thankYouEnabled && user && user.message) {
+            const thankYouArray = user.message
+              .split("\n")
+              .filter((line) => line.trim() !== "");
+            if (thankYouArray.length > 0) {
+              randomThankYou =
+                thankYouArray[Math.floor(Math.random() * thankYouArray.length)];
+            }
+          }
+
           const transporter = nodemailer.createTransport({
             host: host ? host : smtp.host,
             port: port ? port : smtp.port,
@@ -132,9 +156,16 @@ export async function POST(req) {
 
           // Replace the tags in the subject and html
           const processedSubject = replaceTags(subject, currentEmail);
+
+          let processedHtmlTemplate = `${
+            randomHeader ? randomHeader + "<br/><br/>" : ""
+          }${html}`;
+
+          // Perform replacement
           const processedHtml = replaceTags(
-            `${emailHeader ? randomHeader + "<br/><br/>" : ""}${html}`,
-            currentEmail
+            processedHtmlTemplate,
+            currentEmail,
+            thankYouEnabled ? randomThankYou : ""
           );
 
           await transporter.sendMail({

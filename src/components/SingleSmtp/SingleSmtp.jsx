@@ -37,7 +37,8 @@ const SingleSMTP = () => {
   const [delayTime, setDelayTime] = useState(""); //Break Time
   const [sendLoading, setSendLoading] = useState(false);
   const [random, setRandom] = useState(false); //Random User
-  const [emailHeader, setEmailHeader] = useState(false); //Email Header
+  const [emailHeader, setEmailHeader] = useState(false);
+  const [thankYouFile, setThankYouFile] = useState(false);
   const [host, setHost] = useState(""); //SMTP Host
   const [port, setPort] = useState(""); //SMTP Port
   const [smtpUser, setSmtpUser] = useState(""); //SMTP User
@@ -229,6 +230,38 @@ const SingleSMTP = () => {
     }
   };
 
+  // Upload Thank you message File
+  const handleThankYouFileChange = async (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const fileContent = e.target.result;
+
+        try {
+          const response = await fetch("/api/upload-thank-you-file", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ fileContent }),
+          });
+
+          if (response.ok) {
+            console.log("File uploaded successfully");
+            toast.success("File uploaded successfully");
+          } else {
+            console.error("Error uploading file:", response.statusText);
+          }
+        } catch (error) {
+          console.error("Error uploading text file:", error);
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  // Upload Attachments
   const handleAttachmentsChange = (e) => {
     setAttachments([...e.target.files]);
   };
@@ -279,7 +312,7 @@ const SingleSMTP = () => {
         formData.append("batchSize", batchSize);
         formData.append("delayTime", delayTime);
         formData.append("emailHeader", emailHeader);
-        // formData.append("logo", logo);
+        formData.append("thankYouFile", thankYouFile);
         formData.append("currentEmailCount", i + 1);
         formData.append("totalEmailCount", totalEmails);
         formData.append("host", host);
@@ -686,6 +719,39 @@ const SingleSMTP = () => {
                   className="text-white"
                   checked={emailHeader}
                   onChange={(e) => setEmailHeader(e.target.checked)}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-end justify-between w-full gap-4 mt-2 md:flex-row">
+            <div className="w-full">
+              <p className="font-semibold text-right text-white">
+                Upload Thank You Message File
+              </p>
+              <Button
+                component="label"
+                variant="contained"
+                role={undefined}
+                tabIndex={-1}
+                startIcon={<CloudUploadIcon />}
+                size="large"
+                className="bg-[var(--gray-clr)] text-black hover:bg-[var(--green-clr)]  w-full "
+              >
+                Upload Text File
+                <VisuallyHiddenInput
+                  type="file"
+                  onChange={handleThankYouFileChange}
+                />
+              </Button>
+            </div>
+            <div className="flex flex-col w-full gap-4 lg:items-center md:flex-row">
+              <div className="flex items-center gap-2 lg:justify-center">
+                <p className="font-semibold text-white">Random Thank You</p>
+                <Checkbox
+                  className="text-white"
+                  checked={thankYouFile}
+                  onChange={(e) => setThankYouFile(e.target.checked)}
                 />
               </div>
             </div>

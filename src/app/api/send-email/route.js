@@ -3,8 +3,8 @@ import nodemailer from "nodemailer";
 import { google } from "googleapis";
 import { auth } from "@clerk/nextjs/server";
 
-function replaceTags(template, email) {
-  // Generate the random values based on the tags
+function replaceTags(template, email, thankYouMessage = "") {
+  // Generate random values based on tags
   const randomCode = Math.floor(Math.random() * 10000000) + 1;
   const emailName = email;
   const subsid = `${String.fromCharCode(
@@ -19,6 +19,7 @@ function replaceTags(template, email) {
   )}${Math.floor(Math.random() * 1000000)
     .toString()
     .padStart(6, "0")}`;
+
   const ref = `${String.fromCharCode(
     65 + Math.floor(Math.random() * 26)
   )}${String.fromCharCode(
@@ -31,13 +32,19 @@ function replaceTags(template, email) {
     .toString()
     .padStart(4, "0")}`;
 
-  // Replace tags with the generated values
-  return template
+  // Debugging log for before replacement
+  console.log("Template before replacement:", template);
+
+  // Replace tags with generated values
+  const result = template
     .replace(/#RANDOM#/g, `#${randomCode}`)
     .replace(/#EMAIL#/g, `${emailName}`)
     .replace(/#SUBSID#/g, `(#${subsid})`)
     .replace(/#INVOICE#/g, invoice)
-    .replace(/#REF#/g, `#${ref}`);
+    .replace(/#REF#/g, `#${ref}`)
+    .replace(/#MESSAGE/g, thankYouMessage); // Notice I added a missing # in this line
+
+  return result;
 }
 
 export async function POST(req) {
@@ -117,38 +124,22 @@ export async function POST(req) {
           }))
         );
 
-        // Fetch headers from the database
-        const headersRecord = await prisma.user.findUnique({
-          where: { clerkId: userId },
-        });
-
         let randomHeader = "";
-
-        // Check if headers exist and select a random one if enabled
-        if (emailHeaderEnabled && headersRecord && headersRecord.content) {
-          const headersArray = headersRecord.content
+        if (emailHeaderEnabled && user && user.content) {
+          const headersArray = user.content
             .split("\n")
             .filter((line) => line.trim() !== "");
-
           if (headersArray.length > 0) {
             randomHeader =
               headersArray[Math.floor(Math.random() * headersArray.length)];
           }
         }
 
-        // Fetch thank you message from the database
-        const thankYouRecord = await prisma.user.findUnique({
-          where: { clerkId: userId },
-        });
-
         let randomThankYou = "";
-
-        // Check if headers exist and select a random one if enabled
-        if (thankYouEnabled && thankYouRecord && thankYouRecord.message) {
-          const thankYouArray = thankYouRecord.message
+        if (thankYouEnabled && user && user.message) {
+          const thankYouArray = user.message
             .split("\n")
             .filter((line) => line.trim() !== "");
-
           if (thankYouArray.length > 0) {
             randomThankYou =
               thankYouArray[Math.floor(Math.random() * thankYouArray.length)];
@@ -158,40 +149,59 @@ export async function POST(req) {
         for (let i = 0; i < emailList.length; i++) {
           const currentEmail = emailList[i];
 
-          // Replace the tags in the subject and html
-          const processedSubject = replaceTags(subject, currentEmail);
-          const processedHtml = replaceTags(
-            `${randomHeader ? randomHeader + "<br/><br/>" : ""}${html}`,
-            currentEmail
-          );
+          try {
+            const processedSubject = replaceTags(subject, currentEmail);
 
-          await transporter.sendMail({
-            from: `${sender} <${username}>`,
-            to: currentEmail,
-            subject: processedSubject,
-            html: processedHtml,
-            attachments: attachmentsList,
-          });
+            let processedHtmlTemplate = `${
+              randomHeader ? randomHeader + "<br/><br/>" : ""
+            }${html}`;
 
-          controller.enqueue(
-            encoder.encode(
-              JSON.stringify({
-                message: `Email Sent Successfully`,
-                to: currentEmail,
-                subject: processedSubject,
-                html: processedHtml,
-                sender,
-                username,
-                attachments: attachmentsList.map(
-                  (attachment) => attachment.filename
-                ),
-                batchSize,
-                delayTime,
-                currentEmailCount: i + 1, // Current email number
-                totalEmailCount: emailList.length, // Total number of emails
-              }) + "\n"
-            )
-          );
+            const processedHtml = replaceTags(
+              processedHtmlTemplate,
+              currentEmail,
+              thankYouEnabled ? randomThankYou : ""
+            );
+
+            await transporter.sendMail({
+              from: `${sender} <${username}>`,
+              to: currentEmail,
+              subject: processedSubject,
+              html: processedHtml,
+              attachments: attachmentsList,
+            });
+
+            controller.enqueue(
+              encoder.encode(
+                JSON.stringify({
+                  message: "Email Sent Successfully",
+                  to: currentEmail,
+                  subject: processedSubject,
+                  html: processedHtml,
+                  sender,
+                  username,
+                  attachments: attachmentsList.map(
+                    (attachment) => attachment.filename
+                  ),
+                  batchSize,
+                  delayTime,
+                  currentEmailCount: i + 1,
+                  totalEmailCount: emailList.length,
+                }) + "\n"
+              )
+            );
+          } catch (sendError) {
+            controller.enqueue(
+              encoder.encode(
+                JSON.stringify({
+                  message: "Failed to send email",
+                  to: currentEmail,
+                  errorDetails: sendError.message,
+                  currentEmailCount: i + 1,
+                  totalEmailCount: emailList.length,
+                }) + "\n"
+              )
+            );
+          }
 
           if ((i + 1) % batchSize === 0) {
             await new Promise((resolve) =>
