@@ -695,20 +695,6 @@ const SingleSMTP = () => {
           <div className="flex flex-col justify-between gap-4 mt-2 mb-4 lg:flex-row ">
             <div className="w-full">
               <div>
-                <p className="font-semibold text-right text-white">Recepient</p>
-                <textarea
-                  name="textarea"
-                  id="recepient"
-                  rows="8"
-                  className="w-full inputCss"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                ></textarea>
-              </div>
-            </div>
-
-            <div className="w-full">
-              <div>
                 <p className="font-semibold text-right text-white">HTML Body</p>
                 <textarea
                   name="textarea"
@@ -717,6 +703,20 @@ const SingleSMTP = () => {
                   className="w-full inputCss"
                   value={html}
                   onChange={(e) => setHtml(e.target.value)}
+                ></textarea>
+              </div>
+            </div>
+
+            <div className="w-full">
+              <div>
+                <p className="font-semibold text-right text-white">Recepient</p>
+                <textarea
+                  name="textarea"
+                  id="recepient"
+                  rows="8"
+                  className="w-full inputCss"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                 ></textarea>
               </div>
 

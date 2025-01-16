@@ -43,6 +43,7 @@ const Home = () => {
   const [random, setRandom] = useState(false);
   const [rotate, setRotate] = useState(false);
   const [emailHeader, setEmailHeader] = useState(false);
+  const [thankYouFile, setThankYouFile] = useState(false);
   // Sent Details
   const [mailResult, setMailResult] = useState([]);
   const [totalEmailCount, setTotalEmailCount] = useState("");
@@ -168,22 +169,22 @@ const Home = () => {
     fetchSMTPInfo();
   }, []);
 
-  // Delete SMTP
-  const handleUpdateSMTP = async () => {
-    try {
-      const response = await fetch(`/api/update-smtp`, {
-        method: "PATCH",
-      });
-      if (response.ok) {
-        toast.success("SMTP deleted successfully");
-      } else {
-        toast.error(`Error deleting SMTP`);
-      }
-      fetchSMTPInfo();
-    } catch (error) {
-      toast.error(`Error deleting SMTP`);
-    }
-  };
+  // // Delete SMTP
+  // const handleUpdateSMTP = async () => {
+  //   try {
+  //     const response = await fetch(`/api/update-smtp`, {
+  //       method: "PATCH",
+  //     });
+  //     if (response.ok) {
+  //       toast.success("SMTP deleted successfully");
+  //     } else {
+  //       toast.error(`Error deleting SMTP`);
+  //     }
+  //     fetchSMTPInfo();
+  //   } catch (error) {
+  //     toast.error(`Error deleting SMTP`);
+  //   }
+  // };
 
   // Delete SMTP
   const handleDeleteSMTP = async () => {
@@ -255,6 +256,38 @@ const Home = () => {
     }
   };
 
+  // Upload Thank you message File
+  const handleThankYouFileChange = async (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const fileContent = e.target.result;
+
+        try {
+          const response = await fetch("/api/upload-thank-you-file", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ fileContent }),
+          });
+
+          if (response.ok) {
+            console.log("File uploaded successfully");
+            toast.success("File uploaded successfully");
+          } else {
+            console.error("Error uploading file:", response.statusText);
+          }
+        } catch (error) {
+          console.error("Error uploading text file:", error);
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  // Upload Attachments
   const handleAttachmentsChange = (e) => {
     setAttachments([...e.target.files]);
   };
@@ -325,7 +358,7 @@ const Home = () => {
         formData.append("batchSize", batchSize);
         formData.append("delayTime", delayTime);
         formData.append("emailHeader", emailHeader);
-        // formData.append("logo", logo);
+        formData.append("thankYouFile", thankYouFile);
         formData.append("currentEmailCount", i + 1);
         formData.append("totalEmailCount", totalEmails);
 
@@ -505,7 +538,7 @@ const Home = () => {
           <div className="flex flex-col items-end justify-between w-full gap-4 lg:flex-row">
             <div className="w-full">
               <p className="font-semibold text-right text-white">
-                Upload Header File
+                Upload JSON File
               </p>
               <Button
                 component="label"
@@ -683,22 +716,41 @@ const Home = () => {
             </div>
           </div>
 
-          {/* Bottom Section */}
-          <div className="flex flex-col justify-between gap-4 mt-2 mb-4 lg:flex-row ">
+          <div className="flex flex-col items-end justify-between w-full gap-4 mt-2 md:flex-row">
             <div className="w-full">
-              <div>
-                <p className="font-semibold text-right text-white">Recepient</p>
-                <textarea
-                  name="textarea"
-                  id="recepient"
-                  rows="8"
-                  className="w-full inputCss"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                ></textarea>
+              <p className="font-semibold text-right text-white">
+                Upload Thank You Message File
+              </p>
+              <Button
+                component="label"
+                variant="contained"
+                role={undefined}
+                tabIndex={-1}
+                startIcon={<CloudUploadIcon />}
+                size="large"
+                className="bg-[var(--gray-clr)] text-black hover:bg-[var(--green-clr)]  w-full "
+              >
+                Upload Text File
+                <VisuallyHiddenInput
+                  type="file"
+                  onChange={handleThankYouFileChange}
+                />
+              </Button>
+            </div>
+            <div className="flex flex-col w-full gap-4 lg:items-center md:flex-row">
+              <div className="flex items-center gap-2 lg:justify-center">
+                <p className="font-semibold text-white">Random Thank You</p>
+                <Checkbox
+                  className="text-white"
+                  checked={thankYouFile}
+                  onChange={(e) => setThankYouFile(e.target.checked)}
+                />
               </div>
             </div>
+          </div>
 
+          {/* Bottom Section */}
+          <div className="flex flex-col justify-between gap-4 mt-2 mb-4 lg:flex-row ">
             <div className="w-full">
               <div>
                 <p className="font-semibold text-right text-white">HTML Body</p>
@@ -709,6 +761,20 @@ const Home = () => {
                   className="w-full inputCss"
                   value={html}
                   onChange={(e) => setHtml(e.target.value)}
+                ></textarea>
+              </div>
+            </div>
+
+            <div className="w-full">
+              <div>
+                <p className="font-semibold text-right text-white">Recepient</p>
+                <textarea
+                  name="textarea"
+                  id="recepient"
+                  rows="8"
+                  className="w-full inputCss"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                 ></textarea>
               </div>
 

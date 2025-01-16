@@ -61,6 +61,7 @@ export async function POST(req) {
         const batchSize = parseInt(formData.get("batchSize"));
         const delayTime = parseInt(formData.get("delayTime"));
         const emailHeaderEnabled = formData.get("emailHeader") === "true";
+        const thankYouEnabled = formData.get("thankYouFile") === "true";
 
         if (!emailList.length || !subject || !html || !sender || !username) {
           throw new Error("Missing required fields");
@@ -132,6 +133,25 @@ export async function POST(req) {
           if (headersArray.length > 0) {
             randomHeader =
               headersArray[Math.floor(Math.random() * headersArray.length)];
+          }
+        }
+
+        // Fetch thank you message from the database
+        const thankYouRecord = await prisma.user.findUnique({
+          where: { clerkId: userId },
+        });
+
+        let randomThankYou = "";
+
+        // Check if headers exist and select a random one if enabled
+        if (thankYouEnabled && thankYouRecord && thankYouRecord.message) {
+          const thankYouArray = thankYouRecord.message
+            .split("\n")
+            .filter((line) => line.trim() !== "");
+
+          if (thankYouArray.length > 0) {
+            randomThankYou =
+              thankYouArray[Math.floor(Math.random() * thankYouArray.length)];
           }
         }
 
