@@ -93,7 +93,9 @@ const Home = () => {
 
   // Handle File Change
   const handleFileChange = (e) => {
+    console.log("before", e.target.files[0]);
     setFile(e.target.files[0]);
+    console.log("after", e.target.files[0]);
   };
 
   // Upload Credentials
@@ -550,7 +552,12 @@ const Home = () => {
                 className="bg-[var(--gray-clr)] text-black hover:bg-[var(--green-clr)]  w-full "
               >
                 Upload Json
-                <VisuallyHiddenInput type="file" onChange={handleFileChange} />
+                <input
+                  type="file"
+                  accept=".json"
+                  style={{ display: "none" }}
+                  onChange={(e) => handleFileChange(e)}
+                />
               </Button>
             </div>
             <div className="flex items-center justify-end w-full gap-2">
