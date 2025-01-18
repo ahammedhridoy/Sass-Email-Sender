@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
+const { File } = require("formdata-node");
 
 export async function POST(req) {
   try {
@@ -13,9 +14,16 @@ export async function POST(req) {
     }
 
     // Parse the form data
+
     const formData = await req.formData();
     const file = formData.get("credentials");
+
     const fileName = file.name.split(".json")[0];
+
+    console.log("fileName: " + file.name.split(".json")[0]);
+    console.log("Form data keys received:", [...formData.keys()]);
+    console.log("File received:", formData.get("credentials")); // Should log the file object
+    console.log("UserId received:", formData.get("userId")); // Should log the userId
 
     // Validate file
     if (!file || !(file instanceof File)) {

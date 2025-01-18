@@ -20,6 +20,7 @@
     "@tiptap/pm": "^2.6.4",
     "@tiptap/react": "^2.6.4",
     "@tiptap/starter-kit": "^2.6.4",
+    "formdata-node": "^6.0.3",
     "formidable": "^3.5.1",
     "googleapis": "^140.0.1",
     "mongodb": "^6.8.0",
