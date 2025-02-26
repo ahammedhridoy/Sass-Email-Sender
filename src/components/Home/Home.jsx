@@ -171,23 +171,6 @@ const Home = () => {
     fetchSMTPInfo();
   }, []);
 
-  // // Delete SMTP
-  // const handleUpdateSMTP = async () => {
-  //   try {
-  //     const response = await fetch(`/api/update-smtp`, {
-  //       method: "PATCH",
-  //     });
-  //     if (response.ok) {
-  //       toast.success("SMTP deleted successfully");
-  //     } else {
-  //       toast.error(`Error deleting SMTP`);
-  //     }
-  //     fetchSMTPInfo();
-  //   } catch (error) {
-  //     toast.error(`Error deleting SMTP`);
-  //   }
-  // };
-
   // Delete SMTP
   const handleDeleteSMTP = async () => {
     try {
